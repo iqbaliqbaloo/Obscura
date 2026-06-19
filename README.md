@@ -1,54 +1,67 @@
-# MindBlownFacts — YouTube Automation Pipeline
+# Obscura — Automated Urdu Content Pipeline
 
-Fully automated pipeline that selects a world-facts topic, writes a retention-psychology script, generates an emotion-tuned voiceover, assembles a branded video with logo overlay and animated close scene, and uploads it to YouTube. Runs on GitHub Actions three times a day — two Shorts and one long-form standard video.
+Fully automated pipeline that produces and publishes Roman Urdu video content across **5 platforms daily** using only GitHub Actions — no server, no manual work.
+
+Obscura covers 6 categories in conversational Pakistani/Indian Roman Urdu: **Mystery · Psychology · Science · Technology · Islamic Science · History**
 
 ---
 
-## How it works
-
-The pipeline runs **14 sequential steps** driven by a single `master_timeline.json` that every step reads and updates. Timeline durations are **locked after step 4** — no downstream step may change them.
+## What it does (end to end)
 
 | Step | Module | What it does |
 |------|--------|--------------|
-| 1 | `topic_selector` | Trend-aware topic selection: Google Trends rising queries + YouTube Autocomplete keyword mining + Groq viral angle hints; **velocity cluster queue** promotes follow-up seeds from viral videos; deduplicates against 12 months of history; selects category by performance weight; YouTube saturation filter rejects titles where top-10 results have median views > 500k |
-| 2 | `script_generator` | 5-segment script in one of **4 rotating narrative structures** + one of **6 rotating hook formulas**; word count scales with `VIDEO_FORMAT` (130–180 / 680–840 / 900–1344 words); marks `[WOW]` moments; generates CTR-psychology title |
+| 1 | `topic_selector` | Trend-aware topic selection: Google Trends rising queries + YouTube Autocomplete keyword mining + Gemini viral angle hints; **velocity cluster queue** promotes follow-up seeds from viral videos; 30-day deduplication; YouTube saturation filter rejects titles where top-10 results have median views > 500k |
+| 2 | `script_generator` | 5-segment Roman Urdu script in one of **4 rotating narrative structures** + one of **6 rotating hook formulas**; word count scales with `VIDEO_FORMAT` (130–180 / 680–840 / 900–1344 words); marks `[WOW]` moments; generates CTR-optimised Urdu title |
 | 3 | `timeline_builder` | Per-scene timeline with **global emotional arc** per narrative template; Shorts psychology (hook cap, tight CORE intervals); per-category audience persona dwell times; reads `adaptive_params.json` from previous retention signals |
-| 4 | `voice_generator` | Per-scene MP3s with emotion-tuned TTS (edge-tts → ElevenLabs → gTTS → silence); 300 ms inter-scene silence (600 ms at CORE→PAYOFF); **locks timeline durations** |
-| 5 | `scene_planner` | Semantic text analysis — 12 narrative trigger patterns map script text to emotional visual keywords; assigns `motion_emotion` tag per scene |
-| 5b | `cinematic_planner` | Director-level shot sequencing (WIDE / AERIAL / MEDIUM / CLOSE / EXTREME\_CLOSE); pacing rhythm per scene; suspense arc peaks at WOW; shot variety rule prevents 3+ consecutive identical types |
-| 6 | `visual_fetcher` | Groq-optimised search query per scene; Pexels (primary) → Pixabay (fallback); content-level MD5 deduplication across videos; portrait orientation enforced for Shorts; extra slideshow image fetched for scenes ≥ 4 s |
-| 7 | `video_assembler` | Renders each scene with brand overlays (logo top-left, category pill top-right); **16 emotion+shot-driven motion presets**; multi-image Ken-Burns slideshow for long scenes; animated close scene with logo fade-in + text glow |
-| 8 | `subtitle_generator` | Per-scene SRT + ASS files; Shorts captions at 75% frame height (clear of YouTube UI); ASS subtitles burned into final video |
-| 9 | `audio_processor` | **3-stage pipeline:** decode PCM → two-pass loudnorm −14 LUFS + afftdn → fades + alimiter → M4A; optional SFX mix (WOW impacts, hook tension, payoff reveal); optional background music at −20 dB |
-| 10 | `encoder` | Re-encodes with ASS subtitle burn-in (libx264 CRF 18) or stream-copies video when no subtitles; hard `-t locked_duration` cap enforces exact output length; post-encode duration validation (< 0.5 s tolerance) |
-| 11 | `quality_gate` | **1 hard block + 10 scored checks** — all must pass before upload; quality score ≥ 75/100 required; up to 3 retry attempts on failure |
-| 12 | `thumbnail_generator` + `ctr_optimizer` | Pillow-based 1280×720 thumbnail; CTR optimizer scores 9 title/headline combinations on curiosity gap, tension, specificity, novelty, and synergy — best pair used for upload |
-| 13 | `uploader` | YouTube resumable upload (5 retries + token refresh on retry); thumbnail; merged SRT captions; engagement comment; category playlist creation + caching; token re-fetched before each post-upload API call |
-| 14 | `news_analytics` | Logs result; fetches retention curve; scores scene-level drop-off; updates `performance_history.json`; **velocity clustering** queues related seeds from viral videos; applies **adaptive learning** — evolves pipeline parameters automatically |
+| 4 | `voice_generator` | Per-scene MP3s with Edge TTS `ur-PK-AsadNeural` (primary) → gTTS → silence fallback; 300 ms inter-scene silence (600 ms at CORE→PAYOFF); **locks timeline durations** |
+| 5 | `scene_planner` | Semantic text analysis — 12 narrative trigger patterns map script text to emotional visual keywords per category |
+| 5b | `cinematic_planner` | Director-level shot sequencing (WIDE / AERIAL / MEDIUM / CLOSE / EXTREME_CLOSE); pacing rhythm per scene; suspense arc peaks at WOW |
+| 6 | `visual_fetcher` | Gemini-optimised search query per scene; Pexels (primary) → Pixabay (fallback); content-level MD5 deduplication; portrait orientation enforced for Shorts |
+| 7 | `video_assembler` | Renders each scene with watermark overlay (top-left); **16 emotion+shot-driven motion presets**; multi-image Ken-Burns slideshow for long scenes; branded close scene |
+| 8 | `subtitle_generator` | Per-scene SRT + karaoke-style ASS files; Shorts captions positioned clear of YouTube UI |
+| 9 | `audio_processor` | 3-stage pipeline: decode PCM → two-pass loudnorm −14 LUFS + afftdn → fades + alimiter → M4A; optional SFX mix; optional background music at −20 dB |
+| 10 | `encoder` | Re-encodes with ASS subtitle burn-in (libx264 CRF 18); hard `-t locked_duration` cap; post-encode duration validation |
+| 11 | `quality_gate` | **1 hard block + 10 scored checks** — quality score ≥ 75/100 required; up to 3 retry attempts |
+| 12 | `thumbnail_generator` + `ctr_optimizer` | Pillow-based 1280×720 thumbnail (no channel name — content only); CTR optimizer scores 9 title/headline combinations |
+| 13 | `uploader` | YouTube resumable upload (5 retries + token refresh); thumbnail; SRT captions; engagement comment; playlist management |
+| 13b | `video_formatter` | Converts landscape output to 9:16 portrait for TikTok/Instagram/Telegram |
+| 13c | `telegram_uploader` | Posts portrait video + Roman Urdu caption to Telegram channel |
+| 13d | `tiktok_uploader` | Posts portrait video to TikTok via API |
+| 13e | `makecom_uploader` | Fires 2 Make.com webhooks — Facebook Page + Instagram Business (2 accounts each) |
+| 14 | `news_analytics` | Logs result + quality score; fetches retention curve; velocity clustering; applies **adaptive learning** — evolves pipeline parameters automatically |
 
 ---
 
 ## Video formats
 
-`VIDEO_FORMAT` environment variable controls script length, pacing, and output resolution.
-
 | Format | Duration | Words | Resolution | Schedule |
 |--------|----------|-------|------------|----------|
-| `shorts` | ~60 s | 130–180 | 1080 × 1920 | 07:00 + 17:00 UTC daily |
-| `standard` | 4–5 min | 680–840 | 1920 × 1080 | 12:00 UTC daily |
-| `long` | 6–8 min | 900–1344 | 1920 × 1080 | Manual dispatch only |
+| `shorts` | ~60 s | 130–180 | 1080×1920 | 05:00, 14:00, 20:00 UTC daily |
+| `standard` | 4–5 min | 680–840 | 1920×1080 | 00:00 UTC daily (Technology bonus) |
+| `long` | 6–8 min | 900–1344 | 1920×1080 | 03:00 UTC every Friday (Islamic Science) |
 
-**Manual dispatch** — Actions → MindBlownFacts Video Pipeline → Run workflow:
-- `intent_override` — force a category (SPACE / SCIENCE / HISTORY / ANIMALS / NATURE / GEOGRAPHY / OCEAN / CULTURE)
+**Manual dispatch** — Actions → Obscura Urdu Channel Pipeline → Run workflow:
+- `intent_override` — force a category (MYSTERY / PSYCHOLOGY / SCIENCE / TECHNOLOGY / ISLAMIC_SCIENCE / HISTORY)
 - `video_format` — `shorts` | `standard` | `long`
+
+---
+
+## Topic categories
+
+| Category | Roman Urdu Focus | Schedule priority |
+|----------|-----------------|-------------------|
+| MYSTERY | Raaz, paranormal, unsolved, Bermuda Triangle, Nazca Lines | Daily rotation |
+| PSYCHOLOGY | Insani zehan, brain, behavior, subconscious | Daily rotation |
+| SCIENCE | Science facts, space, quantum, DNA, black holes | Daily rotation |
+| TECHNOLOGY | AI, robots, future tech, cyber, digital | Daily rotation |
+| ISLAMIC_SCIENCE | Quran + science, Islamic golden age, Ibn Sina, Al-Biruni | **Friday priority — always `long` format** |
+| HISTORY | Mughals, ancient civilizations, Pakistan/India history | Daily rotation |
 
 ---
 
 ## Viral intelligence system
 
 ### Narrative templates — 4 rotating structures
-
-Every video uses a different structural template so binge-viewers never feel a repetitive pattern.
 
 | Template | Structure |
 |----------|-----------|
@@ -58,8 +71,6 @@ Every video uses a different structural template so binge-viewers never feel a r
 | `reverse` | Start at the incredible outcome → work backward to reveal the hidden cause |
 
 ### Hook formula engine — 6 rotating formulas
-
-Each video uses a different psychological capture mechanism in the first 1–2 seconds.
 
 | Formula | Mechanism |
 |---------|-----------|
@@ -74,233 +85,71 @@ Each video uses a different psychological capture mechanism in the first 1–2 s
 
 ### Global emotional arc
 
-Each narrative template drives a planned full-video emotion sequence. Overrides LLM-assigned emotions for coherent storytelling and correct TTS voice + motion preset selection.
-
 | Template | HOOK | TENSION | CORE | PAYOFF | CLOSE |
 |----------|------|---------|------|--------|-------|
 | classic | excited | mysterious | neutral | dramatic | excited |
 | mystery | mysterious | dramatic | mysterious | excited | neutral |
-| shock\_first | dramatic | excited | neutral | dramatic | excited |
+| shock_first | dramatic | excited | neutral | dramatic | excited |
 | reverse | dramatic | mysterious | neutral | excited | mysterious |
-
-### Cinematic shot planning
-
-`cinematic_planner` adds director-level shot metadata to every scene after `scene_planner`:
-
-| Field | Values | Effect |
-|-------|--------|--------|
-| `shot_type` | WIDE / AERIAL / MEDIUM / CLOSE / EXTREME\_CLOSE | Selects motion preset family in video\_assembler |
-| `pacing` | FAST\_CUT / HOLD / SLOW\_BUILD / IMPACT | Controls scene energy signature |
-| `suspense_level` | 0.0 – 1.0 | Peaks at 1.0 on WOW-marked scenes (→ EXTREME\_CLOSE + IMPACT) |
-| `contrast_shot` | True / False | Flags wide-after-close cuts for visual breathing room |
-
-Shot variety rule: never 3+ consecutive identical shot types. PAYOFF always gets AERIAL/WIDE (visual release). WOW scenes always get EXTREME\_CLOSE + IMPACT.
-
-### Visual emotion intelligence
-
-`scene_planner` scans the actual script text for 12 narrative trigger patterns and prepends emotionally-matched visual keywords before static category banks.
-
-| Trigger pattern | Visual override |
-|----------------|----------------|
-| died / extinct / destroyed / impact | Cinematic destruction, aftermath, ruins |
-| discover / secret / hidden / first time | Discovery, light emergence, reveal |
-| bigger / massive / trillion / scale | Aerial vast comparison, cosmic scale |
-| terrif / deadly / predator / threat | Dark ominous cinematic, danger |
-| ancient / prehistoric / million year | Archaeological ruins, prehistoric landscape |
-| impossible / paradox / mind-blowing | Surreal dramatic, paradox contrast |
-| underground / cave / deep sea / trench | Cave depth, underwater bioluminescence |
-| beautiful / stunning / breathtaking | Cinematic wide, golden light landscape |
-| speed / instant / lightning | Fast motion blur, velocity dynamic |
-| evolv / survival / creature / species | Wildlife dramatic, nature wide |
-| universe / cosmos / galaxy / black hole | Deep space nebula, cosmic dramatic |
-| ocean / sea / wave / tsunami | Ocean wave cinematic, underwater dramatic |
-
-### Motion presets — 16 emotion-driven presets
-
-Rotated by emotion + scene index. 5 options per emotion means up to 5 consecutive same-emotion scenes each use a different animation before any repeat.
-
-| Preset | Emotion affinity | Use case |
-|--------|-----------------|---------|
-| `slow_drift` | neutral, mysterious | Calm, beauty, payoff |
-| `push_in` | excited | Standard hook and tension |
-| `impact_zoom` | dramatic | WOW moments, maximum drama |
-| `reveal_pull` | dramatic, mysterious | Mystery, reverse narrative |
-| `pan_right` / `pan_left` | excited | Geography, exploration, scale |
-| `rise_up` | neutral | Discovery, emergence, wonder |
-| `descend` | mysterious | Underground, deep ocean, threat |
-| `zoom_corner_tl` | mysterious | Subject anchored top-left (space corner) |
-| `zoom_corner_br` | dramatic | Subject anchored bottom-right |
-| `diagonal_drift` | neutral | Zoom + simultaneous X+Y pan |
-| `tilt_reveal` | neutral | Camera tilt upward (reveal shot) |
-| `fast_push` | dramatic, excited | Aggressive tension — more intense than push\_in |
-| `orbit_left` / `orbit_right` | excited | Zoom + arc pan sweep |
-| `breathe` | mysterious | Slow sinusoidal zoom pulse — almost static but alive |
-
----
-
-## Topic intelligence — 4 algorithms
-
-### Algorithm 1 — Google Trends arbitrage
-Fetches rising related queries per category via `pytrends`. Cross-market scoring: topics trending in 2+ English-speaking markets (US, India, UK, Australia) get a momentum bonus (95 pts × number of markets). Results cached for 6 hours.
-
-### Algorithm 2 — YouTube Autocomplete keyword mining
-Queries YouTube's public autocomplete API for each category — no API key needed. Position-ranked scoring (position 0 = 90 pts, position 8 = 10 pts). Reflects what users are actively searching right now.
-
-### Algorithm 3 — AI trending angle hints
-One Groq LLM call at pipeline start generates one fresh viral angle hint per category — injected into every topic expansion prompt to bias the LLM toward what's currently discussed.
-
-### Algorithm 4 — YouTube saturation filter
-After a title is generated, fetches top-10 search results and checks their **median view count**. Rejects topics with median > 500k views (market dominated). Applies a −10 score penalty at 100k–500k (elevated competition). Passes automatically when `YOUTUBE_API_KEY` is not set.
-
-### Velocity cluster queue
-When a video exceeds 2× the channel's average 48h views, `update_velocity_queue` uses Groq to generate 3–4 related seed topics and writes them to `logs/velocity_queue.json`. The next pipeline run picks these up at highest priority. Seeds expire after 72 hours.
-
----
-
-## CTR optimizer
-
-Before upload, `ctr_optimizer` generates up to 3 title variants and 3 thumbnail headline variants, scores every combination on 5 criteria, and injects the highest-scoring pair into the script metadata.
-
-| Criterion | Weight | What it measures |
-|-----------|--------|-----------------|
-| Curiosity gap | 25% | Implies hidden/forbidden knowledge |
-| Emotional tension | 20% | Creates anxiety to find out more |
-| Specificity | 10% | Concrete numbers/facts beat vague claims |
-| Novelty | 15% | Penalises overused phrases (shocking, amazing, etc.) |
-| Synergy | 20% | Title + thumbnail tell different parts of the same story (20–50% word overlap is ideal) |
-
----
-
-## Pre-render retention prediction
-
-After scene planning (before any rendering), `predict_retention_risk` scores the timeline for likely drop-off points:
-
-- Complex scenes too short → viewer overwhelmed
-- 3+ consecutive neutral-emotion scenes → emotional monotony
-- Long CORE scene without a WOW marker → attention decay
-- Sudden emotion drop after a peak → jarring transition
-
-Outputs `risk_score` (0–1), weak scene list, and actionable recommendations — all logged before a single frame is rendered.
-
----
-
-## Adaptive learning
-
-After each upload, `apply_adaptive_learning` translates retention signals into automatic parameter updates written to `logs/adaptive_params.json`. `timeline_builder` reads these on the next run.
-
-| Signal | Automatic adjustment |
-|--------|---------------------|
-| `early_drop` (viewers leave before 25%) | Hook cap reduced by 150 ms; tension interval tightened by 0.3 s |
-| `mid_drop` (viewers leave in CORE) | CORE scene interval reduced by 0.25 s |
-| `late_drop` (viewers leave after PAYOFF) | PAYOFF/CLOSE flagged for script review |
-| Retention > 70% | All parameters locked — system is working |
-| Retention drops below 70% | Lock released — system re-adapts |
-
----
-
-## Animated close scene
-
-The final scene of every video is a fully animated branded card:
-
-- **Background** — Deep navy `#030410`
-- **Logo** — Centered (220 px for 1080 px wide), fades in from transparent over 0.7 s
-- **Channel name** — Bold white with blue glow layer + blue border (`#1A73E8`)
-- **Tagline** — Light blue (`#88CCFF`)
-- **CTA** — "Follow for Daily Mind-Blowing Facts"
-- **Animation** — Full scene fade-in at start, fade-out at end
-
-Falls back gracefully to text-only if `pipeline/assets/logo.png` is missing.
-
----
-
-## Audio intelligence
-
-### Background music
-
-Drop royalty-free audio files in `pipeline/assets/music/`. Auto-detected, mixed at −20 dB under voice. Lowpass-filtered at 12 kHz (never competes with voice clarity). Faded in 1.5 s / out 2 s.
-
-| File | Used for |
-|------|---------|
-| `mysterious.mp3` | Mystery / reverse narrative videos |
-| `excited.mp3` | Classic / shock-first videos |
-| `dramatic.mp3` | Dramatic reveals and WOW scenes |
-| `neutral.mp3` | General fallback |
-
-### Sound effects
-
-Drop SFX files in `pipeline/assets/sfx/`. Mixed at −28 dB (felt, not heard). Gracefully skipped if directory is empty.
-
-| File | When played |
-|------|------------|
-| `hook_tension.mp3` | At t=0 (opening of every video) |
-| `wow_impact.mp3` | At each WOW-marked scene start |
-| `payoff_reveal.mp3` | At PAYOFF segment start |
 
 ---
 
 ## Quality gate — 11 checks
 
-1 hard block + 10 scored checks. Scored checks must reach **75/100** before upload. Failures trigger up to **3 retry attempts**:
-- Attempt 2 — re-assemble without xfade transitions
-- Attempt 3 — minimal title-card fallback video
-- After 3 failures — slot skipped, logged to `quality_failures.json`
+1 hard block + 10 scored checks. Must reach **75/100** before upload. Failures trigger up to **3 retry attempts**.
 
 | Check | Weight | Threshold |
 |-------|--------|----------|
 | `audio_failure` *(hard block)* | — | Silence fallback scenes block upload entirely |
 | `file_integrity` | 15 pts | Container valid, moov at start, size > 100 KB |
-| `resolution` | 10 pts | Exact match to profile spec (1080×1920 or 1920×1080) + 30 fps |
+| `resolution` | 10 pts | Exact match to profile spec + 30 fps |
 | `duration` | 15 pts | Within ± 2.5 s of locked timeline total |
 | `audio_sync` | 15 pts | A/V stream length diff within ± 0.3 s |
 | `audio_level` | 10 pts | Integrated loudness −14 LUFS ± 2 |
 | `subtitles` | 5 pts | No entry < 300 ms |
-| `freeze_frame` | 10 pts | No freeze > 500 ms (freezedetect filter) |
-| `voice_quality` | 5 pts | Degraded TTS (gTTS/silence) scores 3/5 — warning only, does not block |
-| `dropped_frames` | 5 pts | No more than 3 frames with irregular timing (> 20% deviation from 30 fps) |
-| `audio_gaps` | 10 pts | No silence gap > 2.0 s inside the audio track |
+| `freeze_frame` | 10 pts | No freeze > 2000 ms |
+| `voice_quality` | 5 pts | gTTS/silence scores 3/5 — warning only |
+| `dropped_frames` | 5 pts | No more than 3 frames with irregular timing |
+| `audio_gaps` | 10 pts | No silence gap > 2.0 s |
 
 ---
 
-## Topic categories
+## Adaptive learning
 
-`SPACE · SCIENCE · HISTORY · ANIMALS · NATURE · GEOGRAPHY · OCEAN · CULTURE`
+After each upload, retention signals automatically update `logs/adaptive_params.json`. `timeline_builder` reads these on the next run.
 
-Selected by **performance weight** — categories with higher average retention are preferred. Deduplication runs against 12 months of history. Trending hints from Groq + Google Trends + YouTube Autocomplete are merged and ranked before static seeds.
-
----
-
-## Voice quality
-
-Engine priority per scene: **edge-tts → ElevenLabs → gTTS → silence**
-
-| Emotion | ElevenLabs stability | Style | edge-tts rate |
-|---------|---------------------|-------|--------------|
-| excited | 0.35 | 0.70 | +5% |
-| mysterious | 0.85 | 0.10 | −10% |
-| dramatic | 0.55 | 0.45 | −5% |
-| neutral | 0.75 | 0.00 | −5% |
+| Signal | Automatic adjustment |
+|--------|---------------------|
+| `early_drop` (leave before 25%) | Hook cap reduced 150 ms; tension interval tightened 0.3 s |
+| `mid_drop` (leave in CORE) | CORE scene interval reduced 0.25 s |
+| `late_drop` (leave after PAYOFF) | PAYOFF/CLOSE flagged for script review |
+| Retention > 70% | Parameters locked — system is working |
 
 ---
 
-## Brand assets
+## Self-learning comment system
 
-| Path | Purpose |
-|------|---------|
-| `pipeline/assets/logo.png` | Channel logo — PNG with transparency. Top-left overlay on all scenes, bottom-left on thumbnails. Graceful text fallback if missing. |
-| `pipeline/assets/music/*.mp3` | Background music. Named by emotion. Auto-detected, skipped if empty. |
-| `pipeline/assets/sfx/*.mp3` | Sound effects. Placed at timed scene events. Skipped if empty. |
+`comment_analyzer` classifies every new YouTube comment into production faults (speech speed, audio level, image quality, font size) and content faults (facts too basic/complex, boring middle, want more drama). Fault counts above threshold trigger automatic pipeline parameter adjustments written to `logs/auto_fixes.json`. `comment_responder` auto-replies in Roman Urdu using Gemini within the hour.
+
+---
+
+## Circuit breaker
+
+After **3 consecutive pipeline failures**, the circuit opens and subsequent runs are skipped until manually reset. Prevents API quota burn during extended outages.
 
 ---
 
 ## Schedule
 
-| UTC | Cron | `VIDEO_FORMAT` | Output |
-|-----|------|----------------|--------|
-| 07:00 | `0 7 * * *` | `shorts` | ~60 s vertical Shorts (1080×1920) |
-| 12:00 | `0 12 * * *` | `standard` | 4–5 min landscape (1920×1080) |
-| 17:00 | `0 17 * * *` | `shorts` | ~60 s vertical Shorts (1080×1920) |
-
-The 12:00 UTC job also triggers an **analytics refresh** that pulls YouTube retention data, updates `performance_history.json`, runs velocity clustering, and applies adaptive learning for the next run.
+| UTC | PKT | Job | Format | Category |
+|-----|-----|-----|--------|----------|
+| 05:00 daily | 10:00 AM | `news-video` | shorts | Rotating |
+| 14:00 daily | 07:00 PM | `news-video` | shorts | Rotating |
+| 20:00 daily | 01:00 AM | `news-video` | shorts | Rotating |
+| 00:00 daily | 05:00 AM | `bonus-video` | standard | TECHNOLOGY |
+| 03:00 every Friday | 08:00 AM | `friday-islamic-bonus` | long | ISLAMIC_SCIENCE |
+| Every hour | — | `news-monitor` | — | News trigger check |
+| Every hour | — | `comment-responder` | — | Auto-reply + fault analysis |
 
 ---
 
@@ -308,14 +157,30 @@ The 12:00 UTC job also triggers an **analytics refresh** that pulls YouTube rete
 
 | Secret | Purpose |
 |--------|---------|
-| `GROQ_API_KEY_1` / `GROQ_API_KEY_2` | Script + topic generation (Groq LLM). Key 2 is tried automatically when key 1 is rate-limited or fails. |
-| `ELEVENLABS_API_KEY` | Premium TTS voice (optional — falls back to edge-tts) |
-| `PEXELS_API_KEY` | Primary stock photo source |
-| `PIXABAY_API_KEY` | Fallback stock photo source |
-| `YOUTUBE_API_KEY` | YouTube Data API — saturation filter (optional — filter passes if not set) |
-| `YOUTUBE_CLIENT_ID` | YouTube Data API OAuth |
-| `YOUTUBE_CLIENT_SECRET` | YouTube Data API OAuth |
-| `YOUTUBE_REFRESH_TOKEN` | Requires scopes: `youtube`, `youtube.force-ssl`, `youtube.upload` |
+| `GEMINI_API_KEY_1` / `_2` / `_3` | Script generation, topic hints, comment classification (3-key rotation) |
+| `PEXELS_API_KEY` | Primary stock video source |
+| `PIXABAY_API_KEY` | Fallback stock video source |
+| `YOUTUBE_API_KEY` | YouTube Data API — saturation filter |
+| `YOUTUBE_CLIENT_ID` / `_SECRET` / `_REFRESH_TOKEN` | YouTube upload OAuth |
+| `YOUTUBE_CLIENT_ID_READ` / `_SECRET_READ` / `_REFRESH_TOKEN_READ` | YouTube Analytics read-only OAuth |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot for channel posting |
+| `TELEGRAM_CHANNEL_ID` | Target Telegram channel |
+| `TIKTOK_ACCESS_TOKEN` | TikTok Content Posting API |
+| `MAKECOM_FACEBOOK_WEBHOOK` | Make.com webhook → Facebook Page post |
+| `MAKECOM_INSTAGRAM_WEBHOOK` | Make.com webhook → Instagram Business post |
+| `GMAIL_SENDER` / `GMAIL_APP_PASSWORD` | Failure alert emails |
+
+---
+
+## Brand assets
+
+| Path | Purpose |
+|------|---------|
+| `pipeline/assets/watermark.png` | 300×300 RGBA transparent eye icon — top-left overlay on all videos |
+| `pipeline/assets/obscura_logo.png` | 1000×1000 channel logo — social media profiles |
+| `pipeline/assets/obscura_banner.png` | 2560×1440 YouTube channel banner |
+| `pipeline/assets/music/*.mp3` | Background music by emotion — drop royalty-free files here |
+| `pipeline/assets/sfx/*.mp3` | Sound effects — placed at timed scene events |
 
 ---
 
@@ -326,19 +191,19 @@ The 12:00 UTC job also triggers an **analytics refresh** that pulls YouTube rete
 sudo apt-get install ffmpeg fonts-dejavu fonts-liberation libass-dev
 
 # Python deps
-pip install -r requirements.txt
+pip install requests gtts edge-tts rapidfuzz Pillow
 
 # Shorts (~60 s) — default
 python pipeline/main.py
 
-# Standard long-form (4–5 min)
+# Standard (4–5 min)
 VIDEO_FORMAT=standard python pipeline/main.py
 
-# Long video (6–8 min)
-VIDEO_FORMAT=long python pipeline/main.py
+# Long (6–8 min) — Islamic Science
+VIDEO_FORMAT=long INTENT_OVERRIDE=ISLAMIC_SCIENCE python pipeline/main.py
 
 # Force a category
-VIDEO_FORMAT=standard INTENT_OVERRIDE=SPACE python pipeline/main.py
+VIDEO_FORMAT=shorts INTENT_OVERRIDE=MYSTERY python pipeline/main.py
 ```
 
 Outputs land in `pipeline/output/`. Logs go to `pipeline/logs/`.
@@ -349,71 +214,55 @@ Outputs land in `pipeline/output/`. Logs go to `pipeline/logs/`.
 
 ```
 pipeline/
-  main.py                      # Orchestrator — 14 steps, 3-attempt quality retry
+  main.py                        # Orchestrator — 14 steps, 3-attempt quality retry
   assets/
-    logo.png                   # Channel logo (PNG with transparency)
-    music/
-      mysterious.mp3           # Background music — drop royalty-free files here
-      excited.mp3
-      dramatic.mp3
-      neutral.mp3
-    sfx/
-      hook_tension.mp3         # Sound effects — drop royalty-free files here
-      wow_impact.mp3
-      payoff_reveal.mp3
+    watermark.png                # Transparent eye icon — video overlay
+    obscura_logo.png             # Channel logo 1000×1000
+    obscura_banner.png           # YouTube banner 2560×1440
+    music/                       # Background music — named by emotion
+    sfx/                         # Sound effects — hook, wow, payoff
   scripts/
-    topic_selector.py          # Step 1  — 4-algorithm topic selection + velocity queue + dedup
-    script_generator.py        # Step 2  — 4 templates × 6 hook formulas + CTR titles
-    timeline_builder.py        # Step 3  — emotional arc + Shorts psychology + adaptive params
-    voice_generator.py         # Step 4  — emotion-tuned TTS + inter-scene silence
-    scene_planner.py           # Step 5  — semantic text → emotional visual keywords
-    cinematic_planner.py       # Step 5b — shot sequencing + pacing + suspense arc
-    visual_fetcher.py          # Step 6  — Groq query + Pexels/Pixabay + MD5 dedup
-    video_assembler.py         # Step 7  — 16 motion presets + slideshow + animated close
-    subtitle_generator.py      # Step 8  — per-scene SRT + ASS with Shorts positioning
-    audio_processor.py         # Step 9  — 3-stage normalize + SFX + background music
-    encoder.py                 # Step 10 — ASS subtitle burn-in + hard duration cap
-    quality_gate.py            # Step 11 — 1 hard block + 10 scored checks, 3-attempt retry
-    thumbnail_generator.py     # Step 12 — Pillow thumbnail + logo
-    ctr_optimizer.py           # Step 12b — title + headline CTR scoring and synergy
-    uploader.py                # Step 13 — upload + captions + comment + playlist + token refresh
-    news_analytics.py          # Step 14 — retention curve + velocity clustering + adaptive learning
-  temp/                        # Runtime scratch (voice, visuals, scenes, subtitles)
-  output/                      # Final MP4s + thumbnails
+    topic_selector.py            # Step 1   — topic selection + velocity queue + 30-day dedup
+    script_generator.py          # Step 2   — 4 templates × 6 hooks + Roman Urdu CTR titles
+    timeline_builder.py          # Step 3   — emotional arc + Shorts psychology + adaptive params
+    voice_generator.py           # Step 4   — Edge TTS ur-PK-AsadNeural → gTTS → silence
+    scene_planner.py             # Step 5   — semantic text → emotional visual keywords
+    cinematic_planner.py         # Step 5b  — shot sequencing + pacing + suspense arc
+    visual_fetcher.py            # Step 6   — Gemini query + Pexels/Pixabay + MD5 dedup
+    video_assembler.py           # Step 7   — 16 motion presets + watermark + branded close
+    subtitle_generator.py        # Step 8   — SRT + karaoke ASS with Shorts positioning
+    audio_processor.py           # Step 9   — loudnorm + SFX + background music
+    encoder.py                   # Step 10  — ASS burn-in + hard duration cap
+    quality_gate.py              # Step 11  — 1 hard block + 10 scored checks, 3-attempt retry
+    thumbnail_generator.py       # Step 12  — Pillow 1280×720 thumbnail (no channel name)
+    ctr_optimizer.py             # Step 12b — title + headline CTR scoring and synergy
+    uploader.py                  # Step 13  — YouTube upload + captions + comment + playlists
+    video_formatter.py           # Step 13b — landscape → 9:16 portrait conversion
+    telegram_uploader.py         # Step 13c — Telegram channel post
+    tiktok_uploader.py           # Step 13d — TikTok Content Posting API
+    makecom_uploader.py          # Step 13e — Make.com webhooks (Facebook + Instagram)
+    news_analytics.py            # Step 14  — retention + velocity clustering + adaptive learning
+    news_monitor.py              # Hourly    — Google News RSS → bonus video trigger
+    comment_analyzer.py          # Hourly    — fault classification from comments
+    comment_responder.py         # Hourly    — Roman Urdu auto-replies via Gemini
+  temp/                          # Runtime scratch (voice, visuals, scenes, subtitles)
+  output/                        # Final MP4s + thumbnails
   logs/
-    quality_failures.json      # Gate failures with attempt number and checks detail
-    video_results.json         # Per-video upload log (last 200)
-    performance_history.json   # Per-category avg retention — drives topic selection
-    subtopic_history.json      # Per-seed avg retention — sub-topic performance signal
-    analytics_data.json        # Raw YouTube Analytics + retention curve data
-    adaptive_params.json       # Auto-evolved pipeline parameters from retention signals
-    trend_cache.json           # Google Trends cache (6-hour TTL)
-    peak_hours.json            # Top 3 UTC peak hours for upload timing
-    velocity_queue.json        # High-priority follow-up seeds from viral videos (72h TTL)
-    topic_clusters.json        # Multi-video cluster chains from viral topics
-    circuit_state.json         # Consecutive failure counter (circuit breaker)
-    playlist_ids.json          # Cached YouTube playlist IDs (prevents duplicate creation)
+    topic_bank.json              # Seed topics per category
+    video_results.json           # Per-video upload log (last 200)
+    quality_failures.json        # Gate failures with attempt detail
+    analytics_data.json          # YouTube Analytics + retention curve data
+    adaptive_params.json         # Auto-evolved pipeline parameters
+    auto_fixes.json              # Comment-driven parameter adjustments
+    velocity_queue.json          # High-priority follow-up seeds (72h TTL)
+    circuit_state.json           # Consecutive failure counter (circuit breaker)
+    playlist_ids.json            # Cached YouTube playlist IDs
 .github/workflows/
-  news_video.yml               # Scheduled + manual dispatch (shorts/standard/long)
-requirements.txt
+  news_video.yml                 # All jobs — scheduled + manual dispatch
 ```
 
 ---
 
-## Bug fixes
+## Stack
 
-| Date | File | Bug | Severity |
-|------|------|-----|----------|
-| 2026-06-02 | `uploader.py` | `_upload()` caught `requests.exceptions.Timeout` in the bare `except Exception` block which returned `None` immediately with **zero retries** — a single 30-second network spike on the init POST would silently fail the entire scheduled upload | Critical |
-| 2026-06-02 | `uploader.py` | `_upload()` reused the original token across all 5 retry attempts — if the first attempt failed due to a 401 or token expiry, every retry would fail with the same stale token | High |
-| 2026-06-02 | `uploader.py` | `_upload()` did not handle HTTP 401 from the init POST — it fell into the generic "non-200 retryable" path but never refreshed the token, so all 5 retries would fail identically | High |
-| 2026-06-02 | `uploader.py` | `ConnectionError` retry branch had no "Retrying in Xs" log line — silent retry made diagnosing upload failures from CI logs nearly impossible | Low |
-| 2026-06-02 | `news_video.yml` | Analytics-refresh job called `fetch_analytics_feedback()` but never passed the returned hints to `apply_adaptive_learning()` — adaptive learning was permanently broken; `adaptive_params.json` was never updated so `timeline_builder` always ran with default parameters | Critical |
-| 2026-06-02 | `main.py` | Step 14 read `gate.get("hints", {})` to trigger adaptive learning — but `quality_gate.py` never returns a "hints" key, so the block was dead code and `apply_adaptive_learning` was never called from the pipeline either | Critical |
-| 2026-06-02 | `main.py` | `apply_adaptive_learning` and `fetch_peak_hours` imported but never actually used in the pipeline (calls were either dead code or absent) — removed from import | Low |
-| 2026-06-02 | `audio_processor.py` | `total_ms` computed in `_mix_sfx` but never read — unused variable removed | Low |
-| 2026-06-02 | `visual_fetcher.py` | `_pixabay_fetch` used `GROQ_API_KEY` instead of `PIXABAY_API_KEY` — every Pixabay request was rejected, making Pexels the only visual source | Critical |
-| 2026-06-02 | `visual_fetcher.py` | `_groq_to_search_query` had a duplicate `ConnectionError` handler — second block was unreachable dead code | Low |
-| 2026-05-31 | `news_analytics.py` | Spurious `break` in `_generate_related_seeds` — `GROQ_API_KEY_2` was never tried when key 1 failed; velocity queue seed generation silently returned empty | Medium |
-| 2026-05-31 | `topic_selector.py` | Spurious `break` in `_fetch_trending_hints` — `GROQ_API_KEY_2` was never reached; trending angle hints always used key 1 only | Medium |
-| 2026-05-31 | `news_video.yml` | `pytrends` missing from workflow `pip install` — Google Trends always fell back to empty data in CI | Low |
+Python 3.11 · Gemini 2.0 Flash · Edge TTS `ur-PK-AsadNeural` · FFmpeg · Pexels API · Pixabay API · YouTube Data API v3 · TikTok Content Posting API · Telegram Bot API · Make.com webhooks · GitHub Actions
