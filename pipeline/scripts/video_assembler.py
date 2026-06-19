@@ -20,7 +20,7 @@ Transitions:
   • PAYOFF→CLOSE        → 0.3 s fade-to-black
 
 Brand overlays (all non-CLOSE scenes):
-  TOP-LEFT    : logo (pipeline/assets/logo.png) — falls back to "VM" pill
+  TOP-LEFT    : watermark (pipeline/assets/watermark.png) — falls back to "OB" pill
   BOTTOM-LEFT : channel name
   TOP-RIGHT   : intent label pill
 """
@@ -34,19 +34,17 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-_CHANNEL   = "MindBlownFacts"
-_TAGLINE   = "Discover Your World"
-_LOGO_PATH = Path(__file__).parent.parent / "assets" / "logo.png"
+_CHANNEL   = "Obscura"
+_TAGLINE   = "Sach Janain, Aage Barhen"
+_LOGO_PATH = Path(__file__).parent.parent / "assets" / "watermark.png"
 
 _INTENT_COLOR = {
-    "SPACE":       "0x1A0A6B", "SCIENCE":     "0x0055AA",
-    "HISTORY":     "0x6B3A00", "ANIMALS":     "0x1A5C00",
-    "NATURE":      "0x005C1A", "GEOGRAPHY":   "0x006666",
-    "OCEAN":       "0x004080", "CULTURE":     "0x7A3500",
-    "TECHNOLOGY":  "0x005AB4", "PSYCHOLOGY":  "0x5A00A0",
-    "MYTHOLOGY":   "0x784600", "MEDICINE":    "0xA00032",
-    "MATHEMATICS": "0x003296", "ECONOMICS":   "0x006E28",
-    "PHYSICS":     "0xA03C00",
+    "MYSTERY":         "0x1A0A6B",
+    "PSYCHOLOGY":      "0x5A00A0",
+    "SCIENCE":         "0x0055AA",
+    "TECHNOLOGY":      "0x005AB4",
+    "ISLAMIC_SCIENCE": "0x006B3A",
+    "HISTORY":         "0x6B3A00",
 }
 _INTENT_LABEL = {k: k for k in _INTENT_COLOR}
 
@@ -327,9 +325,9 @@ def _render_scene(vis: Path, out: Path, W: int, H: int,
             "-pix_fmt", "yuv420p", "-r", "30", "-an", str(out),
         ]
     else:
-        # No logo — fall back to "VM" text pill in top-left
+        # No logo — fall back to "OB" text pill in top-left
         vf_parts.insert(1,
-            f"drawtext=text='VM':fontfile='{_FONT_BOLD}':"
+            f"drawtext=text='OB':fontfile='{_FONT_BOLD}':"
             f"fontcolor=white:fontsize=28:"
             f"box=1:boxcolor=0x1A73E8@0.85:boxborderw=14:x=42:y=42"
         )
@@ -419,7 +417,7 @@ def _render_close(sc: dict, out: Path, W: int, H: int, dur_s: float) -> None:
         f"bordercolor=black:borderw=1:"
         f"alpha='{alpha_expr}':x=(w-tw)/2:y={tag_y},"
         # CTA
-        f"drawtext=text='Follow for Daily Mind-Blowing Facts':fontfile='{_FONT_REG}':"
+        f"drawtext=text='Har Din Naye Raaz — Subscribe Karen':fontfile='{_FONT_REG}':"
         f"fontcolor=white@0.75:fontsize={cta_sz}:"
         f"alpha='{alpha_expr}':x=(w-tw)/2:y={cta_y}"
     )

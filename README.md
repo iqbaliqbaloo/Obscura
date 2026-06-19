@@ -10,14 +10,14 @@ Obscura covers 6 categories in conversational Pakistani/Indian Roman Urdu: **Mys
 
 | Step | Module | What it does |
 |------|--------|--------------|
-| 1 | `topic_selector` | Trend-aware topic selection: Google Trends rising queries + YouTube Autocomplete keyword mining + Gemini viral angle hints; **velocity cluster queue** promotes follow-up seeds from viral videos; 30-day deduplication; YouTube saturation filter rejects titles where top-10 results have median views > 500k |
-| 2 | `script_generator` | 5-segment Roman Urdu script in one of **4 rotating narrative structures** + one of **6 rotating hook formulas**; word count scales with `VIDEO_FORMAT` (130–180 / 680–840 / 900–1344 words); marks `[WOW]` moments; generates CTR-optimised Urdu title |
+| 1 | `topic_selector` | Trend-aware topic selection: Google Trends rising queries + YouTube Autocomplete keyword mining + Groq viral angle hints; **velocity cluster queue** promotes follow-up seeds from viral videos; 30-day deduplication; YouTube saturation filter rejects titles where top-10 results have median views > 500k |
+| 2 | `script_generator` | 5-segment Roman Urdu script in one of **4 rotating narrative structures** + one of **6 rotating hook formulas**; word count scales with `VIDEO_FORMAT` (130–180 / 680–840 / 900–1344 words); marks `[WOW]` moments; generates CTR-optimised Urdu title via Gemini 2.0 Flash |
 | 3 | `timeline_builder` | Per-scene timeline with **global emotional arc** per narrative template; Shorts psychology (hook cap, tight CORE intervals); per-category audience persona dwell times; reads `adaptive_params.json` from previous retention signals |
-| 4 | `voice_generator` | Per-scene MP3s with Edge TTS `ur-PK-AsadNeural` (primary) → gTTS → silence fallback; 300 ms inter-scene silence (600 ms at CORE→PAYOFF); **locks timeline durations** |
+| 4 | `voice_generator` | Per-scene MP3s — ElevenLabs (Standard/Long only) → edge-tts `en-US-ChristopherNeural` → gTTS → silence; 300 ms inter-scene silence (600 ms at CORE→PAYOFF); **locks timeline durations** |
 | 5 | `scene_planner` | Semantic text analysis — 12 narrative trigger patterns map script text to emotional visual keywords per category |
 | 5b | `cinematic_planner` | Director-level shot sequencing (WIDE / AERIAL / MEDIUM / CLOSE / EXTREME_CLOSE); pacing rhythm per scene; suspense arc peaks at WOW |
-| 6 | `visual_fetcher` | Gemini-optimised search query per scene; Pexels (primary) → Pixabay (fallback); content-level MD5 deduplication; portrait orientation enforced for Shorts |
-| 7 | `video_assembler` | Renders each scene with watermark overlay (top-left); **16 emotion+shot-driven motion presets**; multi-image Ken-Burns slideshow for long scenes; branded close scene |
+| 6 | `visual_fetcher` | Groq-optimised search query per scene; Pexels (primary) → Pixabay (fallback); content-level MD5 deduplication; portrait orientation enforced for Shorts |
+| 7 | `video_assembler` | Renders each scene with watermark overlay (top-left); **16 emotion+shot-driven motion presets**; multi-image Ken-Burns slideshow for long scenes; branded close scene with CTA |
 | 8 | `subtitle_generator` | Per-scene SRT + karaoke-style ASS files; Shorts captions positioned clear of YouTube UI |
 | 9 | `audio_processor` | 3-stage pipeline: decode PCM → two-pass loudnorm −14 LUFS + afftdn → fades + alimiter → M4A; optional SFX mix; optional background music at −20 dB |
 | 10 | `encoder` | Re-encodes with ASS subtitle burn-in (libx264 CRF 18); hard `-t locked_duration` cap; post-encode duration validation |
@@ -27,7 +27,7 @@ Obscura covers 6 categories in conversational Pakistani/Indian Roman Urdu: **Mys
 | 13b | `video_formatter` | Converts landscape output to 9:16 portrait for TikTok/Instagram/Telegram |
 | 13c | `telegram_uploader` | Posts portrait video + Roman Urdu caption to Telegram channel |
 | 13d | `tiktok_uploader` | Posts portrait video to TikTok via API |
-| 13e | `makecom_uploader` | Fires 2 Make.com webhooks — Facebook Page + Instagram Business (2 accounts each) |
+| 13e | `makecom_uploader` | Fires 2 Make.com webhooks — Facebook Page + Instagram Business |
 | 14 | `news_analytics` | Logs result + quality score; fetches retention curve; velocity clustering; applies **adaptive learning** — evolves pipeline parameters automatically |
 
 ---
@@ -94,6 +94,28 @@ Obscura covers 6 categories in conversational Pakistani/Indian Roman Urdu: **Mys
 
 ---
 
+## Voice quality
+
+Engine priority per scene:
+
+| Priority | Engine | Used when |
+|----------|--------|-----------|
+| 1 | **ElevenLabs** (`eleven_turbo_v2_5`) | Standard / Long videos (not Shorts) |
+| 2 | **edge-tts** (`en-US-ChristopherNeural`) | Shorts, or ElevenLabs unavailable |
+| 3 | **gTTS** | edge-tts fails |
+| 4 | Silence fallback | All engines fail (hard-blocks upload via quality gate) |
+
+ElevenLabs emotion settings:
+
+| Emotion | Stability | Style | edge-tts rate |
+|---------|-----------|-------|--------------|
+| excited | 0.35 | 0.70 | +5% |
+| mysterious | 0.85 | 0.10 | −10% |
+| dramatic | 0.55 | 0.45 | −5% |
+| neutral | 0.75 | 0.00 | −5% |
+
+---
+
 ## Quality gate — 11 checks
 
 1 hard block + 10 scored checks. Must reach **75/100** before upload. Failures trigger up to **3 retry attempts**.
@@ -129,13 +151,13 @@ After each upload, retention signals automatically update `logs/adaptive_params.
 
 ## Self-learning comment system
 
-`comment_analyzer` classifies every new YouTube comment into production faults (speech speed, audio level, image quality, font size) and content faults (facts too basic/complex, boring middle, want more drama). Fault counts above threshold trigger automatic pipeline parameter adjustments written to `logs/auto_fixes.json`. `comment_responder` auto-replies in Roman Urdu using Gemini within the hour.
+`comment_analyzer` uses Groq to classify every new YouTube comment into production faults (speech speed, audio level, image quality, font size) and content faults (facts too basic/complex, boring middle, want more drama). Fault counts above threshold trigger automatic pipeline parameter adjustments written to `logs/auto_fixes.json`. `comment_responder` auto-replies in Roman Urdu using Groq within the hour.
 
 ---
 
 ## Circuit breaker
 
-After **3 consecutive pipeline failures**, the circuit opens and subsequent runs are skipped until manually reset. Prevents API quota burn during extended outages.
+After **3 consecutive pipeline failures**, the circuit opens and subsequent runs skip with `SystemExit`. Resets automatically after 24 hours or by deleting `logs/circuit_state.json`.
 
 ---
 
@@ -148,8 +170,8 @@ After **3 consecutive pipeline failures**, the circuit opens and subsequent runs
 | 20:00 daily | 01:00 AM | `news-video` | shorts | Rotating |
 | 00:00 daily | 05:00 AM | `bonus-video` | standard | TECHNOLOGY |
 | 03:00 every Friday | 08:00 AM | `friday-islamic-bonus` | long | ISLAMIC_SCIENCE |
-| Every hour | — | `news-monitor` | — | News trigger check |
-| Every hour | — | `comment-responder` | — | Auto-reply + fault analysis |
+| Every hour | — | `news-monitor` | — | News trigger check (Groq) |
+| Every hour | — | `comment-responder` | — | Auto-reply + fault analysis (Groq) |
 
 ---
 
@@ -157,7 +179,9 @@ After **3 consecutive pipeline failures**, the circuit opens and subsequent runs
 
 | Secret | Purpose |
 |--------|---------|
-| `GEMINI_API_KEY_1` / `_2` / `_3` | Script generation, topic hints, comment classification (3-key rotation) |
+| `GROQ_API_KEY_1` / `_2` / `_3` / `_4` | Topic selection, news facts angle, comment classification (Groq llama-3.3-70b) |
+| `GEMINI_API_KEY` | Script writing (Gemini 2.0 Flash, 8192 output tokens) |
+| `ELEVENLABS_API_KEY` / `_2` / `_3` / `_4` | Premium TTS voice (optional — falls back to edge-tts) |
 | `PEXELS_API_KEY` | Primary stock video source |
 | `PIXABAY_API_KEY` | Fallback stock video source |
 | `YOUTUBE_API_KEY` | YouTube Data API — saturation filter |
@@ -191,7 +215,7 @@ After **3 consecutive pipeline failures**, the circuit opens and subsequent runs
 sudo apt-get install ffmpeg fonts-dejavu fonts-liberation libass-dev
 
 # Python deps
-pip install requests gtts edge-tts rapidfuzz Pillow
+pip install requests gtts edge-tts rapidfuzz Pillow pytrends
 
 # Shorts (~60 s) — default
 python pipeline/main.py
@@ -216,20 +240,20 @@ Outputs land in `pipeline/output/`. Logs go to `pipeline/logs/`.
 pipeline/
   main.py                        # Orchestrator — 14 steps, 3-attempt quality retry
   assets/
-    watermark.png                # Transparent eye icon — video overlay
+    watermark.png                # Transparent eye icon — video overlay (top-left)
     obscura_logo.png             # Channel logo 1000×1000
     obscura_banner.png           # YouTube banner 2560×1440
     music/                       # Background music — named by emotion
     sfx/                         # Sound effects — hook, wow, payoff
   scripts/
-    topic_selector.py            # Step 1   — topic selection + velocity queue + 30-day dedup
-    script_generator.py          # Step 2   — 4 templates × 6 hooks + Roman Urdu CTR titles
+    topic_selector.py            # Step 1   — topic selection + velocity queue + 30-day dedup (Groq)
+    script_generator.py          # Step 2   — 4 templates × 6 hooks + Roman Urdu CTR titles (Gemini)
     timeline_builder.py          # Step 3   — emotional arc + Shorts psychology + adaptive params
-    voice_generator.py           # Step 4   — Edge TTS ur-PK-AsadNeural → gTTS → silence
+    voice_generator.py           # Step 4   — ElevenLabs → edge-tts → gTTS → silence
     scene_planner.py             # Step 5   — semantic text → emotional visual keywords
     cinematic_planner.py         # Step 5b  — shot sequencing + pacing + suspense arc
-    visual_fetcher.py            # Step 6   — Gemini query + Pexels/Pixabay + MD5 dedup
-    video_assembler.py           # Step 7   — 16 motion presets + watermark + branded close
+    visual_fetcher.py            # Step 6   — Groq query + Pexels/Pixabay + MD5 dedup
+    video_assembler.py           # Step 7   — 16 motion presets + watermark overlay + branded close
     subtitle_generator.py        # Step 8   — SRT + karaoke ASS with Shorts positioning
     audio_processor.py           # Step 9   — loudnorm + SFX + background music
     encoder.py                   # Step 10  — ASS burn-in + hard duration cap
@@ -242,14 +266,14 @@ pipeline/
     tiktok_uploader.py           # Step 13d — TikTok Content Posting API
     makecom_uploader.py          # Step 13e — Make.com webhooks (Facebook + Instagram)
     news_analytics.py            # Step 14  — retention + velocity clustering + adaptive learning
-    news_monitor.py              # Hourly    — Google News RSS → bonus video trigger
-    comment_analyzer.py          # Hourly    — fault classification from comments
-    comment_responder.py         # Hourly    — Roman Urdu auto-replies via Gemini
+    news_monitor.py              # Hourly    — Google News RSS → bonus video trigger (Groq)
+    comment_analyzer.py          # Hourly    — fault classification from comments (Groq)
+    comment_responder.py         # Hourly    — Roman Urdu auto-replies via Groq
   temp/                          # Runtime scratch (voice, visuals, scenes, subtitles)
   output/                        # Final MP4s + thumbnails
   logs/
-    topic_bank.json              # Seed topics per category
-    video_results.json           # Per-video upload log (last 200)
+    topic_bank.json              # Seed topics per category (6 categories)
+    video_results.json           # Per-video upload log with quality score (last 200)
     quality_failures.json        # Gate failures with attempt detail
     analytics_data.json          # YouTube Analytics + retention curve data
     adaptive_params.json         # Auto-evolved pipeline parameters
@@ -265,4 +289,4 @@ pipeline/
 
 ## Stack
 
-Python 3.11 · Gemini 2.0 Flash · Edge TTS `ur-PK-AsadNeural` · FFmpeg · Pexels API · Pixabay API · YouTube Data API v3 · TikTok Content Posting API · Telegram Bot API · Make.com webhooks · GitHub Actions
+Python 3.11 · Groq llama-3.3-70b (topic selection, news, comments) · Gemini 2.0 Flash (script writing) · ElevenLabs → edge-tts → gTTS (voice) · FFmpeg · Pexels API · Pixabay API · YouTube Data API v3 · TikTok Content Posting API · Telegram Bot API · Make.com webhooks · GitHub Actions
