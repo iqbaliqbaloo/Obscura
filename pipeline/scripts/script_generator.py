@@ -1,5 +1,5 @@
 """
-STEP 2 — Script Generation (MindBlownFacts Edition)
+STEP 2 — Script Generation (Obscura Edition)
 
 Single Groq LLM call. Returns 5-segment retention-psychology script
 plus YouTube metadata.
@@ -46,7 +46,7 @@ _CLOSE_RULE = (
     "that makes viewers rewatch. Hook: 'Your brain is lying' → Close starts: 'Your brain never stops lying.' "
     "Hook: 'Dead. Still moving.' → Close starts: 'It was never really dead.' "
     "(2) Then ONE subscribe CTA sentence. Vary wording: "
-    "'Follow MindBlownFacts — a new fact drops every day.' "
+    "'Follow Obscura — a new fact drops every day.' "
     "/ 'Subscribe for more facts that shatter what you think you know.' "
     "NEVER say 'Like and subscribe' or 'Hit the bell'."
 )
@@ -57,9 +57,9 @@ _CLOSE_RULE_STANDARD = (
     "(1) Echo ONE specific word or phrase from the HOOK — creates a mental rewatch loop. "
     "Example: HOOK started 'Black holes stop time' → CLOSE starts 'Time. It was always the answer.' "
     "(2) Natural subscribe CTA — vary the wording every video: "
-    "'Follow MindBlownFacts — a new fact drops every day.' "
-    "/ 'Subscribe to MindBlownFacts for facts that change how you see the world.' "
-    "/ 'MindBlownFacts — subscribe if this changed how you see it.' "
+    "'Follow Obscura — a new fact drops every day.' "
+    "/ 'Subscribe to Obscura for facts that change how you see the world.' "
+    "/ 'Obscura — subscribe if this changed how you see it.' "
     "NEVER say 'Like and subscribe' or 'Hit the bell'. "
     "(3) Forward momentum sentence — end the video with desire for the next one: "
     "'The next fact makes this one look ordinary.' "
@@ -364,7 +364,7 @@ def _build_tags_for_prompt(intent: str) -> str:
     tags.append(
         "REPLACE_WITH_5_TOPIC_SPECIFIC_TAGS: use exact long-tail phrases people search for this topic"
     )
-    tags += ["MindBlownFacts", "educational", "facts", "did you know"]
+    tags += ["Obscura", "educational", "facts", "did you know"]
     return json.dumps(tags)
 
 
@@ -381,9 +381,9 @@ def _load_viewer_note() -> str:
     return ""
 
 
-_SYSTEM_TMPL = """You are a world-class educational YouTube scriptwriter for the channel "MindBlownFacts".
+_SYSTEM_TMPL = """You are a world-class educational YouTube scriptwriter for the channel "Obscura".
 Your scripts use retention psychology to make viewers feel they can't stop watching.
-Content: real-world facts — science, history, nature, space, animals, geography, ocean, culture.
+Content: real-world facts in Roman Urdu — mystery, psychology, science, technology, Islamic science, history.
 ACCURACY RULE: Every fact, number, and claim must be real and verifiable. Never invent statistics or events. If verified facts are provided below, treat them as ground truth.
 
 NARRATIVE STRUCTURE THIS VIDEO: {description}
@@ -446,7 +446,7 @@ Respond ONLY with valid JSON. No text outside the JSON.
 DIRECTOR BRIEF:
 {director_brief}"""
 
-_USER_TMPL = """Write a {video_label} "MindBlownFacts" script for this EXACT topic:
+_USER_TMPL = """Write a {video_label} "Obscura" script for this EXACT topic:
 
 TOPIC    : {title}
 DETAILS  : {description}
@@ -482,14 +482,14 @@ Return EXACTLY this JSON (no extra keys, no markdown fences):
   "full_script": "all segments combined into one paragraph",
   "metadata": {{
     "title": "Write a YouTube title for '{title}'. RULES: (1) STRONGLY PREFER format K from the FORMAT POOL — use the | separator: 'Hook phrase | Search category 🔬'. This is the highest-performing SEO format. (2) If format K doesn't fit naturally, pick any other format from the pool — vary, never reuse the same format twice. (3) First 40 chars must contain the main topic keyword. (4) Under 70 chars total. (5) End with exactly 1 relevant emoji. (6) No ALL CAPS. (7) Must describe '{title}' exactly — no subject changes. (8) NEVER use: Nobody Told You / Truth Nobody / shocking / amazing.",
-    "description": "SEO-CRITICAL structure — follow exactly:\nLine 1 (max 140 chars): open with the EXACT 2-3 word phrase people search for this topic, then a compelling sentence. Front-load the keyword — YouTube indexes first words most heavily. Example: 'Black holes are regions...' / 'Octopuses have three hearts...' / 'The real reason Rome collapsed...'\nLine 2: The single most shocking specific fact from the script — include a real number or a scale comparison.\nLine 3: Subscribe to MindBlownFacts for daily mind-blowing facts.\nLine 4-5: 2 natural sentences weaving in long-tail keywords people actually search (e.g. 'Scientists recently discovered...', 'Most people never learn that...', 'The truth about X is...').\nFinal line: 10-12 hashtags — mix specific topic hashtags with broad ones: #Facts #DidYouKnow #Educational #Science #MindBlownFacts",
+    "description": "SEO-CRITICAL structure — follow exactly:\nLine 1 (max 140 chars): open with the EXACT 2-3 word phrase people search for this topic, then a compelling sentence. Front-load the keyword — YouTube indexes first words most heavily. Example: 'Black holes are regions...' / 'Octopuses have three hearts...' / 'The real reason Rome collapsed...'\nLine 2: The single most shocking specific fact from the script — include a real number or a scale comparison.\nLine 3: Subscribe to Obscura for daily mind-blowing facts in Roman Urdu.\nLine 4-5: 2 natural sentences weaving in long-tail keywords people actually search (e.g. 'Scientists recently discovered...', 'Most people never learn that...', 'The truth about X is...').\nFinal line: 10-12 hashtags — mix specific topic hashtags with broad ones: #Facts #DidYouKnow #Educational #Science #Obscura",
     "tags": {tags_instruction},
     "engagement_question": "One question about '{title}' that sparks debate or invites personal stories from viewers"
   }}
 }}"""
 
 
-_CLUSTER_USER_TMPL = """Write an 8-10 minute MindBlownFacts YouTube script on: {title}
+_CLUSTER_USER_TMPL = """Write an 8-10 minute Obscura YouTube script on: {title}
 Topics: {topics_list}
 Central angle: {central_angle} | Category: {intent}
 
@@ -522,7 +522,7 @@ Return ONLY this JSON:
   "full_script": "all segments combined",
   "metadata": {{
     "title": "YouTube title under 90 chars with 1 emoji for: {title}",
-    "description": "SEO description with hashtags #Facts #DidYouKnow #Educational #MindBlownFacts",
+    "description": "SEO description with hashtags #Facts #DidYouKnow #Educational #Obscura",
     "tags": {tags_instruction},
     "engagement_question": "debate question about {title}"
   }}
@@ -546,8 +546,8 @@ def _generate_cluster_script(topic: dict, video_format: str) -> dict:
     # exceeded Groq's payload size limit (413). Content quality comes from the
     # structured user template instead.
     system_prompt = (
-        "You are an educational YouTube scriptwriter for MindBlownFacts. "
-        "Write factual, engaging scripts. Return only valid JSON, no markdown."
+        "You are an educational YouTube scriptwriter for Obscura. "
+        "Write factual, engaging scripts in Roman Urdu style. Return only valid JSON, no markdown."
     )
 
     filled_prompt = _CLUSTER_USER_TMPL.format(

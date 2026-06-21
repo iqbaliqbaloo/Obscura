@@ -31,26 +31,17 @@ import requests
 log = logging.getLogger(__name__)
 
 _PLAYLISTS = {
-    "SPACE":       "MindBlownFacts — Space",
-    "SCIENCE":     "MindBlownFacts — Science",
-    "HISTORY":     "MindBlownFacts — History",
-    "ANIMALS":     "MindBlownFacts — Animals",
-    "NATURE":      "MindBlownFacts — Nature",
-    "GEOGRAPHY":   "MindBlownFacts — Geography",
-    "OCEAN":       "MindBlownFacts — Ocean",
-    "CULTURE":     "MindBlownFacts — Culture",
-    "TECHNOLOGY":  "MindBlownFacts — Technology",
-    "PSYCHOLOGY":  "MindBlownFacts — Psychology",
-    "MYTHOLOGY":   "MindBlownFacts — Mythology",
-    "MEDICINE":    "MindBlownFacts — Medicine",
-    "MATHEMATICS": "MindBlownFacts — Mathematics",
-    "ECONOMICS":   "MindBlownFacts — Economics",
-    "PHYSICS":     "MindBlownFacts — Physics",
+    "MYSTERY":        "Obscura — Mystery",
+    "PSYCHOLOGY":     "Obscura — Psychology",
+    "SCIENCE":        "Obscura — Science",
+    "TECHNOLOGY":     "Obscura — Technology",
+    "ISLAMIC_SCIENCE":"Obscura — Islamic Science",
+    "HISTORY":        "Obscura — History",
 }
 
 # Master playlists by format — keeps Shorts and full videos separate for autoplay
-_MASTER_PLAYLIST_SHORTS   = "MindBlownFacts — Best Shorts"
-_MASTER_PLAYLIST_STANDARD = "MindBlownFacts — Full Episodes"
+_MASTER_PLAYLIST_SHORTS   = "Obscura — Best Shorts"
+_MASTER_PLAYLIST_STANDARD = "Obscura — Full Episodes"
 
 _LOGS_DIR            = Path(__file__).parent.parent / "logs"
 _PLAYLIST_CACHE_FILE = _LOGS_DIR / "playlist_ids.json"
@@ -179,8 +170,8 @@ def upload_video(
     except Exception as exc:
         log.warning("Token re-fetch before playlist failed: %s", exc)
 
-    # Category playlist (e.g. MindBlownFacts — Space)
-    pl_name = _PLAYLISTS.get(topic.get("intent", "").upper(), "MindBlownFacts — World")
+    # Category playlist (e.g. Obscura — Mystery)
+    pl_name = _PLAYLISTS.get(topic.get("intent", "").upper(), "Obscura — World")
     pl_id   = _playlist(token, pl_name)
     if pl_id:
         _add_to_playlist(token, video_id, pl_id)
@@ -294,14 +285,14 @@ def _build_meta(script: dict, topic: dict, timeline: dict, profile: str) -> dict
         first_line = f"#Shorts {first_line}" if "#Shorts" not in first_line else first_line
 
     # Fix 5: channel link in every description — converts viewers to subscribers
-    channel_link = "🔔 Subscribe for daily science and history facts: https://www.youtube.com/@MindBlownFacts-z8o"
+    channel_link = "🔔 Subscribe for daily facts in Roman Urdu: https://www.youtube.com/@ObscuraiIm"
 
     parts: list[str] = [
         first_line,
         "",
         rest_lines if rest_lines else (
             f"Discover the real science behind {cat.lower()} — facts most people "
-            f"never learn in school. Subscribe to MindBlownFacts for new facts every day."
+            f"never learn in school. Subscribe to Obscura for new facts every day."
         ),
         "",
         channel_link,
@@ -336,7 +327,7 @@ def _build_meta(script: dict, topic: dict, timeline: dict, profile: str) -> dict
     tags = list(dict.fromkeys(
         meta.get("tags", [])
         + [
-            "facts", "did you know", "educational", "MindBlownFacts",
+            "facts", "did you know", "educational", "Obscura",
             "facts 2025", "quick facts", "science facts", "real facts",
             "hidden facts", "unknown facts", "facts explained",
             f"{cat_lower} facts", f"{cat_lower} explained", f"{cat_lower} science",
@@ -467,8 +458,8 @@ def _chapter_label(segment_label: str) -> str:
 
 
 def _build_hashtags(cat: str, script_tags: list, profile: str) -> str:
-    base       = ["#MindBlownFacts", "#Facts", "#DidYouKnow", "#WorldFacts",
-                  "#Educational", "#InterestingFacts", "#MindBlowing"]
+    base       = ["#Obscura", "#Facts", "#DidYouKnow", "#RomanUrdu",
+                  "#Educational", "#InterestingFacts", "#UrduFacts"]
     pool       = _CAT_HASHTAGS.get(cat.upper(), ["#WorldFacts"])
     chosen_cat = random.sample(pool, min(5, len(pool)))
     script_ht  = [f"#{t.replace(' ', '').title()}" for t in script_tags[:3]
@@ -912,7 +903,7 @@ def _playlist(token: str, name: str) -> str | None:
             json={
                 "snippet": {
                     "title":       name[:100],
-                    "description": "MindBlownFacts Channel",
+                    "description": "Obscura Channel",
                 },
                 "status": {"privacyStatus": "public"},
             },

@@ -1,5 +1,5 @@
 """
-STEP 1 — Topic Selection (MindBlownFacts Edition)
+STEP 1 — Topic Selection (Obscura Edition)
 
 Uses Groq to generate a specific, surprising world-fact topic from a curated seed bank.
 Categories are rotated evenly across all 15 types using a frequency-inverse score so no
@@ -824,7 +824,7 @@ def _fetch_ai_tech_news_items() -> list[tuple[str, str, str]]:
             r = requests.get(
                 feed_url,
                 timeout=10,
-                headers={"User-Agent": "Mozilla/5.0 (compatible; MindBlownFacts/1.0)"},
+                headers={"User-Agent": "Mozilla/5.0 (compatible; Obscura/1.0)"},
             )
             if not r.ok:
                 continue
@@ -921,7 +921,7 @@ def _is_real_ai_news(title: str, description: str, key: str) -> bool:
 
 def _ai_news_to_video_topic(news_title: str, news_desc: str, key: str) -> "dict | None":
     """
-    Convert a real AI/tech news item into a MindBlownFacts YouTube video topic.
+    Convert a real AI/tech news item into an Obscura YouTube video topic.
     Focuses on what this means for regular people (not just reporting the headline).
     """
     if not key:
@@ -937,7 +937,7 @@ def _ai_news_to_video_topic(news_title: str, news_desc: str, key: str) -> "dict 
                         "role": "system",
                         "content": (
                             "You convert real AI & technology news into educational YouTube "
-                            "video topics for MindBlownFacts. The video explains what the "
+                            "video topics for Obscura. The video explains what the "
                             "development MEANS for regular people — not just the headline. "
                             "Focus on: what is it, how does it actually work, why does it "
                             "matter to everyday life, what does it change.\n"
@@ -955,7 +955,7 @@ def _ai_news_to_video_topic(news_title: str, news_desc: str, key: str) -> "dict 
                         "content": (
                             f"News headline: {news_title}\n"
                             f"News summary: {news_desc}\n\n"
-                            "Create a MindBlownFacts YouTube video topic. Use the actual "
+                            "Create an Obscura YouTube video topic. Use the actual "
                             "technology/product name in the title. Explain the real impact."
                         ),
                     },
@@ -1176,7 +1176,7 @@ def select_topic(logs_dir: Path) -> dict | None:
         "title":             title[:200],
         "description":       description[:500],
         "intent":            cat,
-        "source":            "MindBlownFacts-Fallback",
+        "source":            "Obscura-Fallback",
         "published_at":      datetime.utcnow().isoformat(),
         "article_url":       "",
         "seed":              seed,
@@ -1967,7 +1967,7 @@ def _build_topic(category: str, seed: str, produced: list[dict],
         "title":            title[:200],
         "description":      description[:500],
         "intent":           category,
-        "source":           "MindBlownFacts",
+        "source":           "Obscura",
         "published_at":     datetime.utcnow().isoformat(),
         "article_url":      "",
         "seed":             seed,

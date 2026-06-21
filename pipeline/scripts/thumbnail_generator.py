@@ -553,10 +553,10 @@ def generate_thumbnail(
             logo_img = _I.open(logo_path).convert("RGBA").resize((54, 54), _I.LANCZOS)
             bg.paste(logo_img, (pad, _TH - 80), logo_img)
         except Exception:
-            draw.text((pad, _TH - 48), "MindBlownFacts", font=font_small,
+            draw.text((pad, _TH - 48), "Obscura", font=font_small,
                       fill=(210, 210, 210), stroke_width=1, stroke_fill=(0, 0, 0))
     else:
-        draw.text((pad, _TH - 48), "MindBlownFacts", font=font_small,
+        draw.text((pad, _TH - 48), "Obscura", font=font_small,
                   fill=(210, 210, 210), stroke_width=1, stroke_fill=(0, 0, 0))
 
     # ── Category pill (top-right) ─────────────────────────────────────────────

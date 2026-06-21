@@ -279,7 +279,7 @@ def _send_failure_email(subject: str, body: str) -> None:
         return
     try:
         msg = MIMEText(body, "plain")
-        msg["Subject"] = f"[MindBlownFacts] {subject}"
+        msg["Subject"] = f"[Obscura] {subject}"
         msg["From"]    = sender
         msg["To"]      = "iqbaliqbaloolife@gmail.com"
         with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=15) as s:
@@ -307,7 +307,7 @@ def _send_daily_summary() -> None:
         today_results = [r for r in all_results
                          if r.get("uploaded_at", "").startswith(today)]
 
-        lines = [f"MindBlownFacts — Daily Summary ({today})", "",
+        lines = [f"Obscura — Daily Summary ({today})", "",
                  f"Videos uploaded today: {len(today_results)}/3", ""]
 
         for i, r in enumerate(today_results, 1):
@@ -329,7 +329,7 @@ def _send_daily_summary() -> None:
                 lines += [f"❌ Video {i} — failed or not run", ""]
 
         msg = MIMEText("\n".join(lines), "plain")
-        msg["Subject"] = f"[MindBlownFacts] Daily Summary — {today}"
+        msg["Subject"] = f"[Obscura] Daily Summary — {today}"
         msg["From"]    = sender
         msg["To"]      = "iqbaliqbaloolife@gmail.com"
         with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=15) as s:
