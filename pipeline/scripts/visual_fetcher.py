@@ -81,21 +81,12 @@ _PORTRAIT_SHOTS = {"EXTREME_CLOSE", "CLOSE"}
 # Category-specific fallback queries for the thumbnail background image
 # These are hard-coded "last resort" dramatic queries used when Groq fails.
 _INTENT_THUMB_FALLBACK: dict[str, str] = {
-    "SPACE":       "galaxy nebula explosion cosmic dramatic dark",
-    "SCIENCE":     "laboratory experiment dramatic neon closeup",
-    "HISTORY":     "ancient ruins dramatic storm lightning",
-    "ANIMALS":     "wild predator dramatic intense closeup",
-    "NATURE":      "storm lightning forest dark dramatic",
-    "GEOGRAPHY":   "dramatic cliffside storm waves crash",
-    "OCEAN":       "deep ocean bioluminescent creature dark",
-    "CULTURE":     "ancient temple ruins dramatic sunset fire",
-    "TECHNOLOGY":  "circuit board neon glow dramatic dark",
-    "PSYCHOLOGY":  "human brain neuron neon glow dramatic",
-    "MYTHOLOGY":   "ancient statue lightning storm ruins",
-    "MEDICINE":    "microscope cell dramatic neon closeup",
-    "MATHEMATICS": "fractal geometry colorful dramatic glow",
-    "ECONOMICS":   "city skyline night golden dramatic storm",
-    "PHYSICS":     "plasma energy explosion dramatic burst",
+    "MYSTERY":        "ancient ruins forbidden dark dramatic lightning",
+    "PSYCHOLOGY":     "human brain neuron neon glow dramatic dark",
+    "SCIENCE":        "microscope cell organism dramatic neon closeup",
+    "TECHNOLOGY":     "circuit board chip neon glow dramatic dark",
+    "ISLAMIC_SCIENCE":"mosque interior dramatic golden light pillars",
+    "HISTORY":        "ancient empire ruins dramatic storm lightning",
 }
 
 
@@ -458,23 +449,25 @@ def _groq_to_shock_video_query(script_text: str) -> str:
 
     system_prompt = (
         "You generate search queries to find SHOCKING or STUNNING stock video footage.\n"
+        "IMPORTANT: The script is written in Roman Urdu (Urdu language in Latin/English letters).\n"
+        "Roman Urdu example: 'Black holes ke paas waqt ruk jaata hai' means 'Time stops near black holes'.\n"
+        "Extract the VISUAL SUBJECT from the Roman Urdu text and create an English stock video query.\n"
         "Rules:\n"
-        "- Output ONLY the search query. No explanation, no quotes.\n"
+        "- Output ONLY the search query in English. No explanation, no quotes.\n"
         "- 3 to 5 words maximum.\n"
         "- The query must relate to the script topic.\n"
         "- Target visually DRAMATIC real-world moments cameras can capture:\n"
-        "  wild animals attacking or hunting, extreme weather (tornado, lightning, tsunami),\n"
-        "  volcanic eruptions, space explosions, deep sea creatures, avalanche, wildfire,\n"
-        "  extreme sports crashes, natural disasters, microscopic discoveries.\n"
+        "  ancient ruins, historical monuments, human brain/psychology, microscopic organisms,\n"
+        "  natural phenomena, Islamic architecture, archaeological discoveries, extreme nature.\n"
         "- NEVER use abstract or invisible concepts.\n"
-        "BAD: 'space facts shocking'  → GOOD: 'asteroid explosion space bright'\n"
-        "BAD: 'ocean is deep'         → GOOD: 'great white shark attack water'\n"
-        "BAD: 'human brain powerful'  → GOOD: 'brain neuron firing closeup microscope'\n"
-        "BAD: 'history is surprising' → GOOD: 'ancient ruins crumbling collapse'\n"
+        "BAD: 'raaz shocking facts'   → GOOD: 'ancient ruins dark atmospheric fog'\n"
+        "BAD: 'dimag ki power'        → GOOD: 'brain neuron firing closeup microscope'\n"
+        "BAD: 'Islam ka ek raaz'      → GOOD: 'mosque interior golden light dramatic'\n"
+        "BAD: 'history surprising'    → GOOD: 'mughal fort ruins dramatic aerial'\n"
     )
     user_message = (
-        f"Script opening (first scene): {script_text[:400]}\n\n"
-        "Generate a shocking/dramatic stock video search query for this topic."
+        f"Script opening (first scene, in Roman Urdu): {script_text[:400]}\n\n"
+        "Identify the visual subject and generate an English stock video search query."
     )
 
     for attempt in range(1, MAX_RETRIES + 1):
@@ -613,25 +606,27 @@ def _groq_thumbnail_bg_query(hook_keywords: list[str], intent: str) -> str:
     system_prompt = (
         "You generate stock-image search queries for YouTube thumbnail backgrounds.\n"
         "The image must look SHOCKING, DRAMATIC, and CLICKABLE.\n"
+        "IMPORTANT: Keywords may include Roman Urdu words (Urdu in Latin letters).\n"
+        "Translate any Roman Urdu into English visual equivalents before generating the query.\n"
+        "Roman Urdu: 'raaz'=mystery/secret, 'qadeem'=ancient, 'masjid'=mosque, 'jang'=battle.\n"
         "Rules:\n"
-        "- Output ONLY the search query. No explanation. No quotes.\n"
+        "- Output ONLY the search query in English. No explanation. No quotes.\n"
         "- 4 to 6 words.\n"
-        "- Prefer: explosions, extreme weather, deep-sea creatures, cosmic phenomena,\n"
-        "  animals in dramatic moments, extreme close-ups, lightning, fire, lava,\n"
-        "  vivid bioluminescence, dramatic silhouettes, ruins, microscopy, neon glows.\n"
+        "- Prefer: ancient ruins, dramatic monuments, brain/neuron closeups, lightning storms,\n"
+        "  Islamic architecture dramatic light, archaeological discoveries, extreme close-ups.\n"
         "- The image MUST have HIGH CONTRAST and VIVID COLOR — no flat or grey shots.\n"
         "- Must be a real photographable subject. Never use abstract words.\n"
         "EXAMPLES:\n"
-        "  ocean glow + OCEAN   → 'bioluminescent ocean wave night blue'\n"
-        "  volcano eruption + NATURE → 'lava explosion volcano dramatic dark'\n"
-        "  black hole + SPACE → 'nebula explosion galaxy dark cosmic'\n"
-        "  brain memory + PSYCHOLOGY → 'neuron glow brain neon dark closeup'\n"
-        "  Roman Empire + HISTORY → 'ancient ruins dramatic lightning storm'\n"
+        "  raaz + MYSTERY      → 'ancient forbidden ruins dark fog dramatic'\n"
+        "  dimag + PSYCHOLOGY  → 'neuron glow brain neon dark closeup'\n"
+        "  masjid + ISLAMIC_SCIENCE → 'mosque interior golden pillar dramatic'\n"
+        "  mughal + HISTORY    → 'mughal fort ruins dramatic aerial storm'\n"
+        "  AI + TECHNOLOGY     → 'circuit board neon glow dark dramatic'\n"
     )
     user_message = (
         f"Keywords: {', '.join(hook_keywords[:5])}\n"
         f"Category: {intent}\n"
-        "Generate a shocking/dramatic thumbnail background search query."
+        "Generate a shocking/dramatic thumbnail background search query in English."
     )
 
     for attempt in range(2):
@@ -680,17 +675,19 @@ def _groq_to_search_query(
 
     system_prompt = (
         "You convert educational video scene metadata into stock-photo search queries.\n"
+        "IMPORTANT: Scene keywords may include Roman Urdu words (Urdu written in Latin letters).\n"
+        "Roman Urdu examples: 'raaz' = secret/mystery, 'dimag' = brain, 'waqt' = time,\n"
+        "'qadeem' = ancient, 'masjid' = mosque, 'ilm' = knowledge, 'jang' = war/battle.\n"
+        "Translate any Roman Urdu words into their English visual equivalent for the query.\n"
         "Rules:\n"
-        "- Output ONLY the search query. No explanation, no preamble, no quotes.\n"
+        "- Output ONLY the search query in English. No explanation, no preamble, no quotes.\n"
         "- 4 to 7 words.\n"
         "- Think: what would a PHOTOGRAPHER actually photograph for this scene?\n"
         "  Translate abstract/scientific concepts into visible, physical subjects.\n"
-        "  BAD: 'neutron star explosion'  (no stock photos exist)\n"
-        "  GOOD: 'bright star night sky cosmic'\n"
-        "  BAD: 'DNA CRISPR editing'\n"
-        "  GOOD: 'scientist microscope laboratory closeup'\n"
-        "  BAD: 'Vikings discovering America'\n"
-        "  GOOD: 'ancient wooden ship ocean voyage'\n"
+        "  BAD: 'ancient raaz shocking'  → GOOD: 'ancient ruins dark dramatic fog'\n"
+        "  BAD: 'dimag ki taqat'         → GOOD: 'human brain neuron closeup microscope'\n"
+        "  BAD: 'masjid ka raaz'         → GOOD: 'mosque interior pillars golden light'\n"
+        "  BAD: 'mughal badshah'         → GOOD: 'mughal fort architecture aerial wide'\n"
         "- Match the emotion and shot type to the visual mood.\n"
         "- Use concrete, searchable nouns and adjectives only.\n"
         "- Never use abstract words: 'concept', 'idea', 'mystery', 'fact', 'truth'."
@@ -701,7 +698,7 @@ def _groq_to_search_query(
         f"Emotion: {emotion}\n"
         f"Shot type: {shot_type}\n"
         f"Category: {intent}\n"
-        "Generate a stock-photo search query that will find a visually relevant image."
+        "Generate a stock-photo search query in English that will find a visually relevant image."
     )
 
     for attempt in range(1, MAX_RETRIES + 1):
