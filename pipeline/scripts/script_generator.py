@@ -817,39 +817,124 @@ def generate_script(topic: dict, logs_dir: Path | None = None) -> dict:
     log.info("Generating [%s] script, template=%s wiki=%s",
              video_format, template_name, "yes" if wiki_summary else "no")
 
+    # Build the filled user prompt once (reused across all LLM attempts)
+    title_str = topic["title"]
+    question_directive = (
+        f"\nTHIS VIDEO MUST ANSWER EXACTLY: \"{title_str}\"\n"
+        "The CORE segment must contain the direct, specific answer to this title's "
+        "implied question. Do not answer a different or broader question. "
+        "If a viewer watches and the title is not answered by the end, the script fails."
+    )
+    filled_prompt = _USER_TMPL.format(
+        video_label      = fmt_timing["video_label"],
+        title            = topic["title"],
+        description      = topic["description"][:400],
+        intent           = topic["intent"],
+        template_name    = template_name,
+        wiki_facts       = wiki_facts + question_directive,
+        hook_dur         = fmt_timing["hook_dur"],
+        tension_dur      = fmt_timing["tension_dur"],
+        core_dur         = fmt_timing["core_dur"],
+        payoff_dur       = fmt_timing["payoff_dur"],
+        close_dur        = fmt_timing["close_dur"],
+        total_est        = fmt_timing["total_est"],
+        tags_instruction = _build_tags_for_prompt(topic["intent"]),
+    )
+
+    # Common Roman Urdu function words — if fewer than 5 appear, script is English
+    _URDU_MARKERS = {
+        "hai", "hain", "aur", "ka", "ki", "ke", "nahi", "nahin",
+        "toh", "yeh", "woh", "kya", "se", "bhi", "ne", "ko",
+        "mein", "par", "ek", "lekin", "phir", "jab", "tab", "ab",
+        "jo", "koi", "sab", "bahut", "bohot", "sirf", "baat", "log",
+        "duniya", "raaz", "dimag", "hoga", "thi",
+        "jaata", "jaate", "jaati", "aata", "aate", "karte", "karta",
+        "hota", "hoti", "hote", "karein", "samajh", "accha", "bilkul", "tha",
+        "zaroor", "aapko", "aapka", "aapki", "humein", "unka", "iska",
+    }
+
+    def _validate(script: dict, source: str, attempt: int = 0) -> dict | None:
+        """Common validation: repeat-check, word-count check, language check. Returns script or None."""
+        if not script:
+            return None
+        if banned and _is_script_repeat(script, banned):
+            log.warning("Script repeat detected (%s attempt %d) — will retry", source, attempt + 1)
+            return None
+        words_list = script["full_script"].lower().split()
+        words = len(words_list)
+        if is_longform and words < 800:
+            log.warning("%s script too short (%d words, need ≥800) — will retry", source, words)
+            return None
+        # Reject scripts that are in English instead of Roman Urdu
+        urdu_hits = sum(1 for w in words_list if w.strip(".,!?[]()") in _URDU_MARKERS)
+        if urdu_hits < 5:
+            log.warning(
+                "%s script appears to be in English — only %d Roman Urdu markers found. "
+                "Rejecting and retrying (attempt %d).",
+                source, urdu_hits, attempt + 1,
+            )
+            return None
+        log.info("Script OK — %d words, %d Urdu markers, via %s [%s/%s]",
+                 words, urdu_hits, source, video_format, template_name)
+        return script
+
+    # ── 1. Gemini (free, 8192 output tokens, high rate limits) ───────────────
+    gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if gemini_key:
+        for attempt in range(2):
+            try:
+                full_prompt = system_prompt + "\n\n" + filled_prompt
+                r = requests.post(
+                    f"https://generativelanguage.googleapis.com/v1beta/models/"
+                    f"gemini-2.0-flash:generateContent?key={gemini_key}",
+                    json={
+                        "contents": [{"parts": [{"text": full_prompt}]}],
+                        "generationConfig": {
+                            "maxOutputTokens": fmt_profile["max_tokens"],
+                            "temperature": 0.85 if attempt > 0 else 0.75,
+                        },
+                    },
+                    timeout=90,
+                )
+                if r.ok:
+                    raw    = r.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+                    script = _validate(_parse(raw), "Gemini", attempt)
+                    if script:
+                        active_key = [k for k in _GROQ_KEYS if k]
+                        fc_key = active_key[0] if active_key else ""
+                        if fc_key:
+                            check = _fact_check(script["full_script"], fc_key)
+                            if check.get("has_issues"):
+                                log.warning("Gemini fact-check flagged (attempt %d): %s",
+                                            attempt + 1, check.get("reason"))
+                                if attempt < 1:
+                                    continue
+                                log.warning("Using Gemini script despite fact-check flag")
+                        script["video_format"] = video_format
+                        if video_format == "shorts":
+                            script["segments"] = [
+                                s for s in script["segments"] if s.get("label") != "CLOSE"
+                            ]
+                        return script
+                elif r.status_code == 429:
+                    log.warning("Gemini rate limit (attempt %d) — waiting 15s", attempt + 1)
+                    import time; time.sleep(15)
+                else:
+                    log.warning("Gemini HTTP %d — falling back to Groq", r.status_code)
+                    break
+            except Exception as exc:
+                log.warning("Gemini attempt %d: %s", attempt + 1, exc)
+
+    # ── 2. Groq — rotate keys, wait on 429, retry up to 3× per key ──────────
+    import time as _time
     active_keys = [k for k in _GROQ_KEYS if k]
     if not active_keys:
         log.error("No GROQ API keys set — check GROQ_API_KEY_1..4 in GitHub Secrets")
+
     for key in active_keys:
-        for attempt in range(3):  # extra attempt reserved for fact-check / repeat retry
+        for attempt in range(3):
             try:
-                # On retry after repeat detection: raise temperature for more variety
                 temperature = 0.85 if attempt > 0 else 0.75
-
-                # Build explicit question directive from title
-                title_str = topic["title"]
-                question_directive = (
-                    f"\nTHIS VIDEO MUST ANSWER EXACTLY: \"{title_str}\"\n"
-                    "The CORE segment must contain the direct, specific answer to this title's "
-                    "implied question. Do not answer a different or broader question. "
-                    "If a viewer watches and the title is not answered by the end, the script fails."
-                )
-
-                filled_prompt = _USER_TMPL.format(
-                    video_label      = fmt_timing["video_label"],
-                    title            = topic["title"],
-                    description      = topic["description"][:400],
-                    intent           = topic["intent"],
-                    template_name    = template_name,
-                    wiki_facts       = wiki_facts + question_directive,
-                    hook_dur         = fmt_timing["hook_dur"],
-                    tension_dur      = fmt_timing["tension_dur"],
-                    core_dur         = fmt_timing["core_dur"],
-                    payoff_dur       = fmt_timing["payoff_dur"],
-                    close_dur        = fmt_timing["close_dur"],
-                    total_est        = fmt_timing["total_est"],
-                    tags_instruction = _build_tags_for_prompt(topic["intent"]),
-                )
                 r = requests.post(
                     _GROQ_URL,
                     headers={
@@ -868,51 +953,42 @@ def generate_script(topic: dict, logs_dir: Path | None = None) -> dict:
                     timeout=60,
                 )
                 if r.status_code == 429:
-                    log.warning("Rate limit on key …%s", key[-4:])
-                    break
+                    retry_after = int(r.headers.get("retry-after", "30"))
+                    wait_s = min(retry_after, 60)
+                    log.warning("Rate limit on key …%s — waiting %ds then trying next key",
+                                key[-4:], wait_s)
+                    _time.sleep(wait_s)
+                    break   # move to next key after waiting
+
                 r.raise_for_status()
                 raw    = r.json()["choices"][0]["message"]["content"].strip()
-                script = _parse(raw)
-                if script:
-                    # Detect repeat: if hook is too similar to a recent video, retry
-                    if banned and _is_script_repeat(script, banned):
-                        log.warning("Script repeat detected (attempt %d) — retrying with higher temperature",
-                                    attempt + 1)
-                        if attempt < 2:
-                            continue
+                script = _validate(_parse(raw), "Groq", attempt)
+                if script is None:
+                    if attempt < 2:
+                        continue  # retry with higher temperature
+                    break
 
-                    words = len(script["full_script"].split())
-
-                    # Long-form minimum word check — LLMs sometimes output short scripts
-                    # even when told to write 8-10 minutes. Under 800 words = under 4 min.
-                    # Videos under 4 min are invisible to the YouTube algorithm.
-                    if is_longform and words < 800 and attempt < 2:
-                        log.warning(
-                            "Standard script too short (%d words, need ≥800) — retrying "
-                            "attempt %d with higher temperature", words, attempt + 2,
-                        )
+                check = _fact_check(script["full_script"], key)
+                if check.get("has_issues"):
+                    log.warning("Fact-check flagged (attempt %d): %s",
+                                attempt + 1, check.get("reason"))
+                    if attempt < 2:
                         continue
+                    log.warning("Fact-check still flagged — using best available")
+                else:
+                    log.info("Fact-check passed")
 
-                    log.info("Script OK — %d words via Groq [%s/%s/hook:%s]",
-                             words, video_format, template_name,
-                             hook_formula.split(":")[0])
-                    check = _fact_check(script["full_script"], key)
-                    if check.get("has_issues"):
-                        log.warning("Fact-check flagged (attempt %d): %s",
-                                    attempt + 1, check.get("reason"))
-                        if attempt < 2:
-                            continue  # regenerate script
-                        log.warning("Fact-check still flagged after retry — using best available")
-                    else:
-                        log.info("Fact-check passed")
-                    script["video_format"] = video_format
-                    if video_format == "shorts":
-                        script["segments"] = [
-                            s for s in script["segments"] if s.get("label") != "CLOSE"
-                        ]
-                    return script
+                script["video_format"] = video_format
+                if video_format == "shorts":
+                    script["segments"] = [
+                        s for s in script["segments"] if s.get("label") != "CLOSE"
+                    ]
+                return script
+
             except Exception as exc:
-                log.warning("Groq attempt %d: %s", attempt + 1, exc)
+                log.warning("Groq key …%s attempt %d: %s", key[-4:], attempt + 1, exc)
+                if attempt < 2:
+                    _time.sleep(5)
 
     log.warning("LLM unavailable — using fallback script")
     fb = _fallback(topic)
@@ -957,14 +1033,23 @@ def _parse(raw: str) -> dict | None:
 def _fallback(topic: dict) -> dict:
     t   = topic["title"]
     cat = topic.get("intent", "SCIENCE")
-    hook    = "This fact will completely change how you see the world."
-    tension = ("Most people never hear this. Scientists have known for years. "
-               "Here is what is really happening.")
-    core    = (f"{t}. [WOW] The scale of this is almost impossible to comprehend. "
-               "Researchers have studied this for decades. "
-               "The evidence is undeniable.")
-    payoff  = "Now you understand the real truth behind one of the world's most overlooked facts."
-    close   = "Follow for more facts that will make you question everything."
+
+    _HOOK_BY_CAT = {
+        "MYSTERY":         "Ye anjaana raaz aapko bilkul hairaan kar dega.",
+        "PSYCHOLOGY":      "Aapka apna dimag ye sach aapse chupaata tha.",
+        "SCIENCE":         "Science ka ye amazing fact aapki duniya badal dega.",
+        "TECHNOLOGY":      "Technology ka ye raaz aapko bilkul shock kar dega.",
+        "ISLAMIC_SCIENCE": "Islam aur science ka ye rishta aap nahi jaante the.",
+        "HISTORY":         "Taareekh ka ye chupaaya hua raaz aaj sab ke saamne aayega.",
+    }
+    hook    = _HOOK_BY_CAT.get(cat, "Ye baat aapki duniya ka nazariya hamesha ke liye badal degi.")
+    tension = ("Aksar log ye nahi jaante. Lekin saalon ki research ke baad sach samne aaya. "
+               "Aur ab ye raaz chupaaya nahi ja sakta.")
+    core    = (f"{t}. [WOW] Is baat ki gehrai samajhna almost na-mumkin lagta hai. "
+               "Researchers ne decades se is par kaam kiya hai. "
+               "Aur ab saboot nakar-nahi ho sakta.")
+    payoff  = "Ab aap jaante hain duniya ke is sabse important aur anjaane raaz ki sachai."
+    close   = "Aur bhi aisi batein jaanne ke liye Obscura follow karein — har roz naya raaz."
     full    = " ".join([hook, tension, core, payoff, close])
     return {
         "narrative_template": "classic",
