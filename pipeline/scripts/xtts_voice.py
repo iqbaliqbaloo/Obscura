@@ -26,13 +26,40 @@ _XTTS_LANG  = "hi"   # Hindi — same phonology as Urdu; Roman Urdu text pronoun
 _MODEL_NAME = "tts_models/multilingual/multi-dataset/xtts_v2"
 
 
+def _patch_transformers_compat() -> None:
+    """
+    Coqui TTS imports BeamSearchScorer from the top-level transformers namespace.
+    In transformers>=4.46 it was moved to transformers.generation.beam_search.
+    This patch restores it so XTTS loads without ImportError on any transformers version.
+    """
+    try:
+        import transformers
+        if hasattr(transformers, "BeamSearchScorer"):
+            return  # already in the right place — nothing to do
+        # Try the new location (transformers >= 4.46)
+        import importlib
+        for mod_path in ("transformers.generation.beam_search", "transformers.generation"):
+            try:
+                mod = importlib.import_module(mod_path)
+                cls = getattr(mod, "BeamSearchScorer", None)
+                if cls is not None:
+                    transformers.BeamSearchScorer = cls
+                    log.debug("XTTS compat: patched BeamSearchScorer from %s", mod_path)
+                    return
+            except Exception:
+                continue
+        log.warning("XTTS compat: BeamSearchScorer not found in transformers — XTTS may fail")
+    except Exception as exc:
+        log.debug("XTTS compat patch error: %s", exc)
+
+
 def xtts_available() -> bool:
     """Return True if TTS package is installed and reference voice exists."""
     if not _REF_MP4.exists():
         return False
     try:
+        _patch_transformers_compat()
         import TTS  # noqa: F401
-        # Ensure TOS env var is set before any TTS import triggers the prompt
         os.environ.setdefault("COQUI_TOS_AGREED", "1")
         return True
     except ImportError:
@@ -90,8 +117,8 @@ def _get_tts():
     if _tts_instance is not None:
         return _tts_instance
 
-    # Auto-accept Coqui TOS so the pipeline never blocks on an interactive prompt.
     os.environ.setdefault("COQUI_TOS_AGREED", "1")
+    _patch_transformers_compat()   # fix BeamSearchScorer for transformers>=4.46
 
     try:
         from TTS.api import TTS
