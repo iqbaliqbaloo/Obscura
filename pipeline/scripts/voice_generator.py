@@ -1,12 +1,13 @@
 """
-STEP 4 — Voice Generation
+STEP 4 — Voice Generation (Obscura — Roman Urdu)
 
 Generates one audio file per scene (voice_{scene_id}.mp3).
 Measures ACTUAL duration with ffprobe, then updates the master timeline.
 If actual duration drifts > 500ms from estimate, scene visual duration adjusts.
 
-Engine priority: ElevenLabs → edge-tts → gTTS → silence fallback
-ElevenLabs voice settings are tuned per emotion tag.
+Engine priority: edge-tts (ur-PK-AsadNeural) → edge-tts (ur-PK-UzmaNeural) → gTTS Urdu → silence
+ElevenLabs is SKIPPED — it has no good Urdu voice; English voices read Roman Urdu
+incorrectly and destroy the listening experience.
 
 300 ms of silence is appended ONCE (only when the file is freshly generated).
 Cached voice files are reused as-is so silence does not accumulate on reruns.
@@ -19,32 +20,28 @@ import os
 import subprocess
 from pathlib import Path
 
-import requests
-
 log = logging.getLogger(__name__)
 
-_EL_VOICE_ID = "pNInz6obpgDQGcFmaJgB"
-_EDGE_VOICE  = "en-US-ChristopherNeural"
+# Pakistani Urdu voices (edge-tts) — Asad (male) is primary, Uzma (female) is backup.
+# These voices handle Roman Urdu (Latin-script Urdu) naturally.
+_EDGE_VOICE         = "ur-PK-AsadNeural"    # Pakistani male — deep, authoritative
+_EDGE_VOICE_BACKUP  = "ur-PK-UzmaNeural"   # Pakistani female — clear, engaging
 
-_EL_SETTINGS: dict[str, dict] = {
-    "excited":    {"stability": 0.35, "similarity_boost": 0.90, "style": 0.70, "use_speaker_boost": True},
-    "mysterious": {"stability": 0.85, "similarity_boost": 0.80, "style": 0.10, "use_speaker_boost": False},
-    "dramatic":   {"stability": 0.55, "similarity_boost": 0.90, "style": 0.45, "use_speaker_boost": True},
-    "neutral":    {"stability": 0.75, "similarity_boost": 0.85, "style": 0.00, "use_speaker_boost": True},
-}
-
+# Rate tuned for Urdu speech rhythm: Urdu is naturally expressive but flows
+# slightly slower than English. Values lower than the old English settings.
 _EDGE_RATE: dict[str, str] = {
-    "excited":    "+24%",
-    "mysterious": "+14%",
-    "dramatic":   "+20%",
-    "neutral":    "+22%",
+    "excited":    "+14%",   # High energy hook — fast but not breathless
+    "mysterious": "+2%",    # Slow and deliberate — builds dread
+    "dramatic":   "+8%",    # Payoff reveal — punchy
+    "neutral":    "+10%",   # Core facts — clear and steady
 }
 
+# Pitch adds natural expressiveness to Urdu intonation
 _EDGE_PITCH: dict[str, str] = {
-    "excited":    "+3Hz",
-    "mysterious": "+0Hz",
-    "dramatic":   "+2Hz",
-    "neutral":    "+2Hz",
+    "excited":    "+6Hz",
+    "mysterious": "-3Hz",   # Lower pitch = more ominous
+    "dramatic":   "+4Hz",
+    "neutral":    "+1Hz",
 }
 
 def _auto_tts_rate_adjust() -> int:
@@ -157,13 +154,13 @@ def generate_voices(timeline: dict, voice_dir: Path) -> dict:
 # ── TTS engines ───────────────────────────────────────────────────────────────
 
 def _generate(text: str, out: Path, emotion: str, fallback_duration_s: float = 3.0) -> str:
-    # Shorts go straight to edge-tts — ElevenLabs quota is reserved for
-    # Standard/Bonus where 8-10 min watch time depends on voice quality.
-    is_shorts = os.getenv("VIDEO_FORMAT", "").lower() == "shorts"
-    if not is_shorts and _elevenlabs(text, out, emotion):
-        return "elevenlabs"
-    if _edge_tts(text, out, emotion):
+    # ElevenLabs is intentionally skipped — no Urdu voice available.
+    # Engine order: Asad (primary Urdu male) → Uzma (backup Urdu female) → gTTS Urdu → silence
+    if _edge_tts(text, out, emotion, voice=_EDGE_VOICE):
         return "edge-tts"
+    if _edge_tts(text, out, emotion, voice=_EDGE_VOICE_BACKUP):
+        log.info("  TTS: fell back to backup Urdu voice (Uzma)")
+        return "edge-tts-backup"
     if _gtts(text, out):
         return "gtts"
     _silence_file(out, max(1.0, fallback_duration_s))
@@ -171,7 +168,7 @@ def _generate(text: str, out: Path, emotion: str, fallback_duration_s: float = 3
     return "silence"
 
 
-def _edge_tts(text: str, out: Path, emotion: str) -> bool:
+def _edge_tts(text: str, out: Path, emotion: str, voice: str = _EDGE_VOICE) -> bool:
     base = int(_EDGE_RATE.get(emotion, "+0%").replace("%", ""))
     adjusted = max(-30, min(30, base + _auto_tts_rate_adjust()))
     rate  = f"{adjusted:+d}%"
@@ -180,9 +177,8 @@ def _edge_tts(text: str, out: Path, emotion: str) -> bool:
         try:
             async def _run():
                 import edge_tts
-                comm = edge_tts.Communicate(text, voice=_EDGE_VOICE, rate=rate, pitch=pitch)
+                comm = edge_tts.Communicate(text, voice=voice, rate=rate, pitch=pitch)
                 await comm.save(str(out))
-            # Use get_event_loop instead of asyncio.run() to avoid nested loop crash
             try:
                 loop = asyncio.get_event_loop()
                 if loop.is_running():
@@ -196,61 +192,24 @@ def _edge_tts(text: str, out: Path, emotion: str) -> bool:
             if out.exists() and out.stat().st_size > 500:
                 return True
         except Exception as exc:
-            log.debug("edge-tts attempt %d: %s", attempt + 1, exc)
+            log.debug("edge-tts [%s] attempt %d: %s", voice, attempt + 1, exc)
             if attempt == 0:
                 import time as _t; _t.sleep(1)
-    return False
-
-
-# Keys that returned 401/429 this run — skip them for remaining scenes
-_el_exhausted: set[str] = set()
-
-
-def _elevenlabs(text: str, out: Path, emotion: str) -> bool:
-    keys = [
-        os.getenv("ELEVENLABS_API_KEY",   "").strip(),
-        os.getenv("ELEVENLABS_API_KEY_2", "").strip(),
-        os.getenv("ELEVENLABS_API_KEY_3", "").strip(),
-        os.getenv("ELEVENLABS_API_KEY_4", "").strip(),
-    ]
-    settings = _EL_SETTINGS.get(emotion, _EL_SETTINGS["neutral"])
-
-    for key in keys:
-        if not key or key in _el_exhausted:
-            continue
-        for attempt in range(2):
-            try:
-                r = requests.post(
-                    f"https://api.elevenlabs.io/v1/text-to-speech/{_EL_VOICE_ID}",
-                    headers={"xi-api-key": key, "Content-Type": "application/json"},
-                    json={"text": text, "model_id": "eleven_turbo_v2_5",
-                          "voice_settings": settings},
-                    timeout=30,
-                )
-                if r.ok:
-                    out.write_bytes(r.content)
-                    return True
-                if r.status_code in (401, 429):
-                    log.warning("ElevenLabs key …%s HTTP %d — skipping for rest of run",
-                                key[-4:], r.status_code)
-                    _el_exhausted.add(key)
-                    break
-                log.debug("ElevenLabs HTTP %d (attempt %d)", r.status_code, attempt + 1)
-            except Exception as exc:
-                log.debug("ElevenLabs attempt %d: %s", attempt + 1, exc)
-            if attempt == 0:
-                import time as _t; _t.sleep(1)
-
     return False
 
 
 def _gtts(text: str, out: Path) -> bool:
-    try:
-        from gtts import gTTS
-        gTTS(text=text, lang="en", slow=False).save(str(out))
-        return out.exists()
-    except Exception as exc:
-        log.debug("gTTS: %s", exc)
+    # Roman Urdu (Latin-script) with lang='ur' — Google TTS handles code-mixed
+    # Pakistani speech better than lang='en' for Urdu-script words.
+    for lang in ("ur", "hi"):
+        try:
+            from gtts import gTTS
+            gTTS(text=text, lang=lang, slow=False).save(str(out))
+            if out.exists() and out.stat().st_size > 500:
+                log.debug("gTTS: success with lang=%s", lang)
+                return True
+        except Exception as exc:
+            log.debug("gTTS lang=%s: %s", lang, exc)
     return False
 
 
