@@ -559,9 +559,6 @@ def generate_thumbnail(
         draw.text((pad, _TH - 48), "Obscura", font=font_small,
                   fill=(210, 210, 210), stroke_width=1, stroke_fill=(0, 0, 0))
 
-    # ── Category pill (top-right) ─────────────────────────────────────────────
-    _draw_pill(draw, intent, font_small, _TW - 180, 26, pill_color)
-
     out_path.parent.mkdir(parents=True, exist_ok=True)
     bg.save(str(out_path), "JPEG", quality=95)
     log.info("  Thumbnail: layout=%s line1='%s' line2='%s' → %s",
