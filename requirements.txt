@@ -4,3 +4,4 @@ edge-tts
 rapidfuzz
 Pillow
 cloudinary
+TTS

@@ -22,7 +22,7 @@ on:
 jobs:
   news-video:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     if: |
       github.event_name == 'workflow_dispatch' ||
       github.event.schedule == '0 5 * * *'  ||
@@ -47,8 +47,14 @@ jobs:
           sudo apt-get install -y ffmpeg fonts-dejavu fonts-liberation libass-dev
           ffmpeg -version | head -1
 
+      - name: Cache XTTS v2 model
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/tts
+          key: xtts-v2-model-v1
+
       - name: Install Python dependencies
-        run: pip install requests gtts edge-tts rapidfuzz Pillow pytrends cloudinary
+        run: pip install requests gtts edge-tts rapidfuzz Pillow pytrends cloudinary TTS
 
       - name: Create runtime directories
         run: |
@@ -266,7 +272,7 @@ jobs:
 
   bonus-video:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     if: github.event.schedule == '0 0 * * *'
 
     steps:
@@ -286,8 +292,14 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg fonts-dejavu fonts-liberation libass-dev
 
+      - name: Cache XTTS v2 model
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/tts
+          key: xtts-v2-model-v1
+
       - name: Install Python dependencies
-        run: pip install requests gtts edge-tts rapidfuzz Pillow pytrends cloudinary
+        run: pip install requests gtts edge-tts rapidfuzz Pillow pytrends cloudinary TTS
 
       - name: Create runtime directories
         run: |
@@ -348,7 +360,7 @@ jobs:
 
   friday-islamic-bonus:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 240
     if: github.event.schedule == '0 3 * * 5'
 
     steps:
@@ -368,8 +380,14 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg fonts-dejavu fonts-liberation libass-dev
 
+      - name: Cache XTTS v2 model
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/tts
+          key: xtts-v2-model-v1
+
       - name: Install Python dependencies
-        run: pip install requests gtts edge-tts rapidfuzz Pillow pytrends cloudinary
+        run: pip install requests gtts edge-tts rapidfuzz Pillow pytrends cloudinary TTS
 
       - name: Create runtime directories
         run: |

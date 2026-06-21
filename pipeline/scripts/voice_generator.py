@@ -4,14 +4,18 @@ STEP 4 — Voice Generation (Obscura — Roman Urdu)
 Generates one audio file per scene (voice_{scene_id}.mp3).
 Measures ACTUAL duration with ffprobe, then updates the master timeline.
 
-Engine priority: edge-tts (hi-IN-MadhurNeural) → edge-tts (ur-IN-SalmanNeural)
-                 → gTTS Hindi → silence
+Engine priority:
+  1. XTTS v2 voice clone  — uses pipeline/assets/reference_voice.mp4 as the speaker
+                             voice (free, open-source Coqui TTS, Hindi language)
+  2. edge-tts Madhur      — hi-IN-MadhurNeural (Indian male, high quality)
+  3. edge-tts Salman      — ur-IN-SalmanNeural (Indian Urdu male)
+  4. gTTS Hindi           — Google TTS fallback
+  5. silence              — last resort
 
 SentenceBoundary events from edge-tts are collected during streaming:
   _speech_offset_ms  — silence before speech starts in the audio (typically 50-200ms)
   _speech_dur_ms     — actual spoken duration reported by the TTS engine
-These two values let the subtitle generator lock subtitles to the REAL speech
-window instead of guessing from character count alone.
+These values let the subtitle generator lock subtitles to the REAL speech window.
 
 300 ms of silence is appended ONCE (only when the file is freshly generated).
 Cached voice files are reused as-is so silence does not accumulate on reruns.
@@ -162,18 +166,32 @@ def _generate(
       speech_offset_ms — initial silence before speech starts in the audio
       speech_dur_ms    — actual spoken duration from TTS engine
     """
+    # ── Engine 1: XTTS v2 voice clone (reference_voice.mp4) ──────────────────
+    try:
+        from xtts_voice import xtts_available, generate as xtts_generate
+        if xtts_available():
+            if xtts_generate(text, out):
+                log.info("  TTS: XTTS voice clone ✓")
+                return "xtts", {}
+    except Exception as exc:
+        log.debug("XTTS unavailable: %s", exc)
+
+    # ── Engine 2: edge-tts primary Indian voice ────────────────────────────
     ok, meta = _edge_tts(text, out, emotion, voice=_EDGE_VOICE)
     if ok:
         return "edge-tts", meta
 
+    # ── Engine 3: edge-tts backup Indian Urdu voice ────────────────────────
     ok, meta = _edge_tts(text, out, emotion, voice=_EDGE_VOICE_BACKUP)
     if ok:
         log.info("  TTS: fell back to backup Indian Urdu voice (Salman)")
         return "edge-tts-backup", meta
 
+    # ── Engine 4: gTTS ─────────────────────────────────────────────────────
     if _gtts(text, out):
         return "gtts", {}
 
+    # ── Engine 5: silence ──────────────────────────────────────────────────
     _silence_file(out, max(1.0, fallback_duration_s))
     log.error("All TTS engines failed — silence for: %s", text[:50])
     return "silence", {}
