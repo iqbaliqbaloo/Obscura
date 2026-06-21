@@ -802,9 +802,10 @@ def generate_script(topic: dict, logs_dir: Path | None = None) -> dict:
     log.info("Generating [%s] script, template=%s wiki=%s",
              video_format, template_name, "yes" if wiki_summary else "no")
 
-    for key in _GROQ_KEYS:
-        if not key:
-            continue
+    active_keys = [k for k in _GROQ_KEYS if k]
+    if not active_keys:
+        log.error("No GROQ API keys set — check GROQ_API_KEY_1..4 in GitHub Secrets")
+    for key in active_keys:
         for attempt in range(3):  # extra attempt reserved for fact-check / repeat retry
             try:
                 # On retry after repeat detection: raise temperature for more variety
@@ -971,7 +972,7 @@ def _fallback(topic: dict) -> dict:
             "description": (
                 f"{t}\n\n"
                 f"Category: {cat}\n\n"
-                "#VisionaryMinds #Facts #DidYouKnow #WorldFacts #Educational"
+                "#Obscura #Facts #DidYouKnow #RomanUrdu #Educational"
             ),
             "tags": ["real world facts", "facts", "did you know", "world facts",
                      "educational", cat.lower()],
