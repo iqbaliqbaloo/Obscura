@@ -25,27 +25,32 @@ import re
 
 log = logging.getLogger(__name__)
 
-# Diverse fallback title patterns — rotated randomly so no two consecutive
+# Diverse fallback title patterns in Roman Urdu — rotated randomly so no two consecutive
 # videos share the same title format. {topic} is replaced with the stripped topic phrase.
 _FALLBACK_TITLE_PATTERNS = [
-    "The Real Reason {topic} Works The Way It Does",
-    "What {topic} Actually Does To Your Body",
-    "Scientists Just Found Something Wild About {topic}",
-    "How {topic} Works — And Why It Changes Everything",
-    "This Is What Really Happens Inside {topic}",
-    "Why {topic} Is Nothing Like You Were Taught",
-    "What Happens To Your Brain When {topic}",
-    "{topic}: The Hidden Side Nobody Talks About",
-    "The Disturbing Science Behind {topic}",
-    "How {topic} Is Quietly Changing Your Life Right Now",
+    "{topic} Ka Asli Raaz Kya Hai?",
+    "{topic} Asliyat Mein Aisa Kaam Karta Hai",
+    "Scientists Ne {topic} Ke Baare Mein Ye Dhoond Liya",
+    "{topic} Ke Baare Mein Ye Haqiqat Aapko Hairaan Kar Degi",
+    "Aapke Saath {topic} Ye Karta Hai",
+    "{topic} Ki Anjaani Sachai Jo Koi Nahi Jaanta",
+    "{topic}: Asli Wajah Kya Hai?",
+    "{topic} Ke Andar Kya Hota Hai?",
+    "Har Roz {topic} Aapke Saath Ye Karta Hai",
+    "{topic} Ko Samjhne Ke Baad Duniya Alag Lagti Hai",
 ]
 
 # Words that indicate curiosity-gap psychology is already present
+# Includes both English (for mixed titles) and Roman Urdu equivalents
 _CURIOSITY_WORDS = {
     "hidden", "secret", "impossible", "nobody", "real reason", "truth",
     "actually", "scientists", "discovered", "found", "never taught",
     "what really", "why really", "how really", "until now", "breaking",
     "just discovered", "they hid", "suppressed", "unknown",
+    # Roman Urdu curiosity markers
+    "raaz", "chupaaya", "asliyat", "haqiqat", "anjaana", "anjaan",
+    "dhoond", "hairaan", "ajeeb", "sachai", "chupi", "poshida",
+    "scientists", "kyon", "kaise", "asli", "wajah",
 }
 
 # Overused / penalised patterns
@@ -55,11 +60,14 @@ _WEAK_PATTERNS = {
     "interesting facts", "did you know that", "here are",
 }
 
-# Power words that score high
+# Power words that score high (English + Roman Urdu equivalents)
 _POWER_WORDS = {
     "impossible", "hidden", "real", "secret", "nobody", "scientists",
     "discovered", "found", "breaks", "never", "forbidden", "suppressed",
     "actual", "truth", "real reason", "not what",
+    # Roman Urdu power words
+    "raaz", "chupaaya", "asliyat", "haqiqat", "anjaana", "hairaan",
+    "ajeeb", "sachai", "asli", "wajah", "dhoond", "namukin",
 }
 
 # ── Scoring functions ─────────────────────────────────────────────────────────
@@ -81,6 +89,12 @@ def _score_tension(text: str) -> float:
         r"(hidden|secret|forbidden)",
         r"(impossible|can\'t exist|shouldn\'t)",
         r"(changes|breaks|defies).*(everything|physics|reality)",
+        # Roman Urdu tension patterns
+        r"(koi nahi|kuch nahi).*(jaanta|jaante|bata)",
+        r"(asli|sachai|haqiqat).*(wajah|raaz|baat)",
+        r"(scientists|researchers).*(ne|dhoond|mila)",
+        r"(chupaaya|poshida|anjaan)",
+        r"(hairaan|ajeeb|namukin)",
     ]
     score = 0.0
     for p in tension_patterns:
@@ -163,14 +177,14 @@ def _generate_title_variants(title: str, hook_text: str) -> list[str]:
     variants = [title]
     title_lower = title.lower()
 
-    # Variant 2: question-format only for noun-phrase titles (short, no conjugated verb)
+    # Variant 2: Roman Urdu question-format for noun-phrase titles
     _verb_mid = re.compile(r"\b(are|is|was|were|have|has|had|fell|died|broke|happened)\b")
-    if not re.match(r"^(why|how|what|where|when|who)\b", title_lower) and not _verb_mid.search(title_lower):
+    if not re.match(r"^(kyon|kaise|kya|why|how|what|where|when|who)\b", title_lower) and not _verb_mid.search(title_lower):
         base = title.rstrip(".!?")
-        if re.search(r"\b(real|truth|hidden|secret|actual)\b", title_lower):
-            variants.append(f"Why {base}?")
+        if re.search(r"\b(asli|sachai|raaz|haqiqat|chupaaya|real|truth|hidden|secret|actual)\b", title_lower):
+            variants.append(f"{base} Kyon? 🤔")
         elif len(title.split()) <= 6:
-            variants.append(f"How Does {base} Actually Work?")
+            variants.append(f"{base} Asliyat Mein Kaise Kaam Karta Hai? 🔬")
 
     # Variant 3: diverse curiosity-gap fallback — pick randomly so no two videos
     # look the same. Only fires when the base title lacks power words.

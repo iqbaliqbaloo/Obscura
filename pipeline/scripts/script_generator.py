@@ -404,7 +404,10 @@ WRONG — NEVER write these:
   "بلیک ہولز وقت کو روکتے ہیں" ← Urdu script, REJECTED
   "Scientists have found that..." ← English, REJECTED
 
-ONLY English allowed: YouTube title, description, tags (SEO only — never spoken in the video).
+Title must also be in Roman Urdu (written in Latin letters, as Pakistani/Indian audience reads).
+  CORRECT title: "Black Holes Ke Paas Waqt Ruk Jaata Hai | Space Facts 🌌"
+  WRONG title:   "Black Holes Stop Time | Space Science Facts 🌌"  ← English, REJECTED
+Description and tags stay in English for YouTube search indexing.
 The voice actor speaks ONLY Roman Urdu. Every spoken word = Roman Urdu.
 
 NARRATIVE STRUCTURE THIS VIDEO: {description}
@@ -432,34 +435,34 @@ TITLE RULES — YouTube Shorts optimised (follow ALL rules every time):
   Rule 5: BANNED overused words: shocking / unbelievable / amazing / mind-blowing / incredible / nobody told you / the truth nobody / what they don't.
   Rule 6: VARY THE FORMAT every video — pick ONE format from the pool below. Never repeat the same format twice in a row.
 
-  FORMAT POOL (rotate — each video uses a different one):
-  A. Question + payoff:    "Why Do [TOPIC] [SURPRISING FACT]? 🤯"
-  B. Real reason:          "[TOPIC]: The Real Reason [CLAIM] 🔬"
-  C. Personal impact:      "What [TOPIC] Does To Your Body Right Now 🧠"
-  D. Scale fact:           "[TOPIC] Is [SCALE COMPARISON] — And It Changes Everything 🌌"
-  E. Discovery framing:    "Scientists Just Found [TOPIC] [SURPRISING DETAIL] 🔭"
-  F. Reversal/subversion:  "How [TOPIC] Actually Works (You've Been Lied To) ⚡"
-  G. Number-led:           "[NUMBER] [TOPIC] Facts That [EMOTIONAL PAYOFF] 🫀"
-  H. Identity challenge:   "Your [BODY PART/SELF] Is [IMPOSSIBLE CLAIM] About [TOPIC] 👁️"
-  I. Conflict framing:     "[TOPIC] vs [OPPOSING IDEA] — Only One Can Be True 🚨"
-  J. Time urgency:         "Every [TIME UNIT], [TOPIC] Does Something [CLAIM] ⏱️"
-  K. Double keyword (| SEO — HIGHEST PRIORITY format, use often):
-     "[Hook phrase about topic] | [2-3 word search category] 🔬"
-     Before |: short curiosity hook (what people CLICK). After |: what people SEARCH.
-     Example: "Black Holes Eat Light | Space Science Facts 🌌"
-     Example: "Your Brain Deletes Memories | Psychology Facts 🧠"
-     Example: "Ocean Glows In The Dark | Marine Biology 🌊"
+  FORMAT POOL — ALL IN ROMAN URDU (rotate — each video uses a different format):
+  A. Sawal:         "[TOPIC] kyon [SURPRISING FACT] hota hai? 🤯"
+  B. Asli wajah:    "[TOPIC]: Asli wajah kya hai? 🔬"
+  C. Personal:      "[TOPIC] aapke saath ye karta hai 🧠"
+  D. Scale:         "[TOPIC] [SCALE] hai — aur ye sab kuch badal deta hai 🌌"
+  E. Discovery:     "Scientists ne [TOPIC] mein ye dhoond liya 🔭"
+  F. Reversal:      "[TOPIC] asliyat mein aise kaam karta hai ⚡"
+  G. Number-led:    "[NUMBER] [TOPIC] facts jo aapko hairaan kar denge 🫀"
+  H. Identity:      "Aapka [BODY PART] [IMPOSSIBLE CLAIM] hai 👁️"
+  I. Conflict:      "[TOPIC] vs [OPPOSING IDEA] — sirf ek sach ho sakta hai 🚨"
+  J. Time urgency:  "Har [TIME UNIT] mein [TOPIC] ye karta hai ⏱️"
+  K. Double keyword (| separator — HIGHEST PRIORITY, use often):
+     "[Roman Urdu hook] | [Roman Urdu ya English category] 🔬"
+     Before |: hook in Roman Urdu (what people CLICK). After |: category keywords (what people SEARCH).
+     Example: "Black Holes Roshni Ko Khaa Jaate Hain | Space Facts 🌌"
+     Example: "Dimag Rozana 35000 Faisle Karta Hai | Psychology Facts 🧠"
+     Example: "Samundar Raat Ko Chamakta Hai | Marine Biology 🌊"
 
-  GOOD: "Why Does The Ocean Glow At Night? 🌊"               ← A, front-loaded, emoji, <70 chars
-  GOOD: "Black Holes: The Real Reason Light Can't Escape 🌌"  ← B, front-loaded
-  GOOD: "What Lava Actually Does To Human Bone 🔥"            ← C, personal + specific
-  GOOD: "Scientists Just Found Life 11km Under The Ocean 🐙"  ← E, discovery
-  GOOD: "How Your Brain Deletes Memories While You Sleep 🧠"  ← F, personal + specific
-  GOOD: "Ocean Glows Blue At Night | Marine Biology Facts 🌊" ← K, SEO double-keyword (BEST for views)
-  GOOD: "Your Brain Deletes Memories | Psychology Science 🧠" ← K, SEO double-keyword (BEST for views)
-  BAD:  "The Truth Nobody Told You About Black Holes"         ← overused pattern (Rule 5)
-  BAD:  "Amazing Facts About DNA That Will Blow Your Mind"    ← banned words (Rule 5)
-  BAD:  "Why Nobody Talks About This Ocean Secret"            ← overused + no emoji (Rule 5)
+  GOOD: "Samundar Raat Ko Kyon Chamakta Hai? 🌊"                  ← A, sawal
+  GOOD: "Black Holes: Roshni Kyon Nahi Bach Sakti? 🌌"             ← B, asli wajah
+  GOOD: "Lava Insaani Haddi Ke Saath Ye Karta Hai 🔥"              ← C, personal
+  GOOD: "Scientists Ne 11km Gehrai Mein Zindagi Dhoond Li 🐙"      ← E, discovery
+  GOOD: "Aapka Dimag Neend Mein Yadein Delete Karta Hai 🧠"         ← F, reversal
+  GOOD: "Samundar Chamakta Hai | Marine Biology Facts 🌊"           ← K, double keyword (BEST)
+  GOOD: "Dimag Yadein Delete Karta Hai | Psychology Facts 🧠"       ← K, double keyword (BEST)
+  BAD:  "Black Holes Stop Time | Space Science Facts 🌌"            ← English title, REJECTED
+  BAD:  "The Truth Nobody Told You About Black Holes"               ← English + overused
+  BAD:  "Hairaan Karne Wale DNA Facts"                              ← vague, no emoji
 
 Writing style: authoritative, fast-paced, conversational.
 Respond ONLY with valid JSON. No text outside the JSON.
@@ -502,7 +505,7 @@ Return EXACTLY this JSON (no extra keys, no markdown fences):
   "total_estimated_seconds": {total_est},
   "full_script": "all segments combined into one paragraph",
   "metadata": {{
-    "title": "Write a YouTube title for '{title}'. RULES: (1) STRONGLY PREFER format K from the FORMAT POOL — use the | separator: 'Hook phrase | Search category 🔬'. This is the highest-performing SEO format. (2) If format K doesn't fit naturally, pick any other format from the pool — vary, never reuse the same format twice. (3) First 40 chars must contain the main topic keyword. (4) Under 70 chars total. (5) End with exactly 1 relevant emoji. (6) No ALL CAPS. (7) Must describe '{title}' exactly — no subject changes. (8) NEVER use: Nobody Told You / Truth Nobody / shocking / amazing.",
+    "title": "Write a ROMAN URDU YouTube title for '{title}'. Roman Urdu = Urdu language in Latin letters. The entire title must be in Roman Urdu — no English sentences. RULES: (1) STRONGLY PREFER format K — use the | separator: 'Roman Urdu hook | Category 🔬'. Example: 'Black Holes Roshni Ko Khaa Jaate Hain | Space Facts 🌌'. (2) If K doesn't fit, use any format from the pool. (3) First 40 chars must contain the topic in Roman Urdu. (4) Under 70 chars total. (5) End with exactly 1 relevant emoji. (6) Must describe '{title}' — no subject changes. (7) NEVER use: shocking / amazing / hairaan karne wala (overused).",
     "description": "SEO-CRITICAL structure — follow exactly:\nLine 1 (max 140 chars): open with the EXACT 2-3 word phrase people search for this topic, then a compelling sentence. Front-load the keyword — YouTube indexes first words most heavily. Example: 'Black holes are regions...' / 'Octopuses have three hearts...' / 'The real reason Rome collapsed...'\nLine 2: The single most shocking specific fact from the script — include a real number or a scale comparison.\nLine 3: Subscribe to Obscura for daily mind-blowing facts in Roman Urdu.\nLine 4-5: 2 natural sentences weaving in long-tail keywords people actually search (e.g. 'Scientists recently discovered...', 'Most people never learn that...', 'The truth about X is...').\nFinal line: 10-12 hashtags — mix specific topic hashtags with broad ones: #Facts #DidYouKnow #Educational #Science #Obscura",
     "tags": {tags_instruction},
     "engagement_question": "One question about '{title}' that sparks debate or invites personal stories from viewers"
