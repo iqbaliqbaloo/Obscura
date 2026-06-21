@@ -32,6 +32,8 @@ def xtts_available() -> bool:
         return False
     try:
         import TTS  # noqa: F401
+        # Ensure TOS env var is set before any TTS import triggers the prompt
+        os.environ.setdefault("COQUI_TOS_AGREED", "1")
         return True
     except ImportError:
         return False
@@ -83,10 +85,13 @@ def _get_tts():
     if _tts_instance is not None:
         return _tts_instance
 
+    # Auto-accept Coqui TOS so the pipeline never blocks on an interactive prompt.
+    # This is the standard CI/CD approach documented by Coqui.
+    os.environ.setdefault("COQUI_TOS_AGREED", "1")
+
     try:
         from TTS.api import TTS
         log.info("XTTS: loading model '%s' (first run downloads ~1.9 GB) …", _MODEL_NAME)
-        # gpu=False for CI runners (no GPU). Set gpu=True locally if you have a GPU.
         use_gpu = os.getenv("XTTS_GPU", "0") == "1"
         tts = TTS(_MODEL_NAME, gpu=use_gpu)
         _tts_instance = tts

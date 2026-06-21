@@ -76,6 +76,7 @@ jobs:
 
       - name: Run Video Pipeline
         env:
+          COQUI_TOS_AGREED:          "1"
           VIDEO_FORMAT:              ${{ steps.fmt.outputs.format }}
           INTENT_OVERRIDE:           ${{ github.event.inputs.intent_override }}
           GROQ_API_KEY_1:            ${{ secrets.GROQ_API_KEY_1 }}
@@ -312,6 +313,7 @@ jobs:
 
       - name: Run Technology Bonus Video Pipeline
         env:
+          COQUI_TOS_AGREED:          "1"
           VIDEO_FORMAT:              standard
           INTENT_OVERRIDE:           TECHNOLOGY
           TOPIC_SOURCE:              rss
@@ -400,6 +402,7 @@ jobs:
 
       - name: Run Islamic Science Long Video Pipeline
         env:
+          COQUI_TOS_AGREED:          "1"
           VIDEO_FORMAT:              long
           INTENT_OVERRIDE:           ISLAMIC_SCIENCE
           GROQ_API_KEY_1:            ${{ secrets.GROQ_API_KEY_1 }}

@@ -44,7 +44,9 @@ _NEWS_FEEDS: dict[str, str] = {
     "PSYCHOLOGY":  "https://news.google.com/rss/search?q=psychology+brain+research&hl=en",
     "MYTHOLOGY":   "https://news.google.com/rss/search?q=ancient+mythology+discovery&hl=en",
     "MEDICINE":    "https://news.google.com/rss/search?q=medical+discovery+health&hl=en",
-    "PHYSICS":     "https://news.google.com/rss/search?q=physics+quantum+discovery&hl=en",
+    "PHYSICS":        "https://news.google.com/rss/search?q=physics+quantum+discovery&hl=en",
+    "MYSTERY":        "https://news.google.com/rss/search?q=unsolved+mystery+paranormal+discovery&hl=en",
+    "ISLAMIC_SCIENCE": "https://news.google.com/rss/search?q=islamic+science+muslim+discovery+history&hl=en",
 }
 
 # Keywords that indicate genuinely big/interesting news

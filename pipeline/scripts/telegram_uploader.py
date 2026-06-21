@@ -34,7 +34,7 @@ def upload_to_telegram(video_path: Path, caption: str, thumbnail_path: Path | No
                     "chat_id":           channel_id,
                     "caption":           caption[:1024],  # Telegram caption limit
                     "parse_mode":        "HTML",
-                    "supports_streaming": True,
+                    "supports_streaming": "true",
                 }
                 r = requests.post(url, data=data, files=files, timeout=120)
 

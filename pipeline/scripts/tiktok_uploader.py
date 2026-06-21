@@ -7,7 +7,7 @@ import requests
 
 log = logging.getLogger(__name__)
 
-_TIKTOK_UPLOAD_URL = "https://open.tiktokapis.com/v2/post/publish/inbox/video/init/"
+_TIKTOK_UPLOAD_URL = "https://open.tiktokapis.com/v2/post/publish/video/init/"
 _TIKTOK_STATUS_URL = "https://open.tiktokapis.com/v2/post/publish/status/fetch/"
 
 

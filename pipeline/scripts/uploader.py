@@ -367,8 +367,15 @@ _CAT_HASHTAGS: dict[str, list[str]] = {
                    "#Geometry", "#MathematicsExplained", "#NumberFacts", "#Maths"],
     "ECONOMICS":   ["#Economics", "#EconomicsFacts", "#Money", "#MoneyFacts",
                    "#Finance", "#FinanceFacts", "#WealthFacts", "#EconomicsExplained"],
-    "PHYSICS":     ["#Physics", "#PhysicsFacts", "#Quantum", "#QuantumPhysics",
-                   "#PhysicsExplained", "#Science", "#Relativity", "#EnergyFacts"],
+    "PHYSICS":        ["#Physics", "#PhysicsFacts", "#Quantum", "#QuantumPhysics",
+                      "#PhysicsExplained", "#Science", "#Relativity", "#EnergyFacts"],
+    "MYSTERY":        ["#Mystery", "#MysteryFacts", "#UnsolvedMystery", "#Paranormal",
+                      "#HiddenSecrets", "#Conspiracy", "#StrangeFacts", "#ColdCase",
+                      "#UnexplainedMystery", "#Supernatural"],
+    "ISLAMIC_SCIENCE": ["#IslamicScience", "#IslamicHistory", "#MuslimScientists",
+                        "#IslamicGoldenAge", "#QuranScience", "#ArabicScience",
+                        "#IslamicCivilization", "#MuslimInventions",
+                        "#IslamicFacts", "#IslamicKnowledge"],
 }
 
 
@@ -720,8 +727,8 @@ def _upload_captions(video_id: str, subtitles_dir: Path, timeline: dict, token: 
             json={
                 "snippet": {
                     "videoId":  video_id,
-                    "language": "en",
-                    "name":     "English",
+                    "language": "ur",
+                    "name":     "Roman Urdu",
                     "isDraft":  False,
                 }
             },

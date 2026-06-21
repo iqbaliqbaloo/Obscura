@@ -354,6 +354,8 @@ _CATEGORY_TAGS: dict[str, list[str]] = {
     "MATHEMATICS": ["math facts", "mathematics facts", "number facts", "math history", "geometry facts", "mathematical discoveries", "math science"],
     "ECONOMICS":   ["economics facts", "money facts", "finance facts", "world economy facts", "economic history", "business facts", "wealth facts"],
     "PHYSICS":     ["physics facts", "quantum physics facts", "physics explained", "energy facts", "force facts", "physics science", "laws of physics"],
+    "MYSTERY":        ["mystery facts", "unsolved mysteries", "unexplained events", "strange mysteries", "world mysteries", "conspiracy facts", "hidden secrets", "paranormal facts"],
+    "ISLAMIC_SCIENCE": ["islamic science facts", "muslim scientists", "islamic golden age", "quran science", "islamic history facts", "muslim inventors", "arabic science", "islamic civilization"],
 }
 
 

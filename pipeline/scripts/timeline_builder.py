@@ -76,7 +76,9 @@ _PERSONA_BASE_MS: dict[str, dict[str, int]] = {
     "MEDICINE":    {"simple": 3_000, "moderate": 5_000, "complex": 7_000},
     "MATHEMATICS": {"simple": 3_500, "moderate": 5_500, "complex": 8_000},
     "ECONOMICS":   {"simple": 3_000, "moderate": 5_000, "complex": 7_000},
-    "PHYSICS":     {"simple": 3_000, "moderate": 5_000, "complex": 7_500},
+    "PHYSICS":        {"simple": 3_000, "moderate": 5_000, "complex": 7_500},
+    "MYSTERY":        {"simple": 3_500, "moderate": 5_500, "complex": 7_500},
+    "ISLAMIC_SCIENCE": {"simple": 3_500, "moderate": 5_500, "complex": 7_500},
 }
 _DEFAULT_PERSONA_MS = {"simple": 3_000, "moderate": 4_500, "complex": 6_000}
 

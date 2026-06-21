@@ -453,6 +453,11 @@ def _mix_background_music(voice: Path, music_dir: Path, duration_s: float) -> Pa
     existing = list(music_dir.glob("*.mp3")) + list(music_dir.glob("*.wav")) + list(music_dir.glob("*.m4a"))
     if not existing:
         try:
+            import sys as _sys
+            import os as _os
+            _scripts_dir = str(_os.path.dirname(_os.path.abspath(__file__)))
+            if _scripts_dir not in _sys.path:
+                _sys.path.insert(0, _scripts_dir)
             from music_fetcher import generate_music
             generate_music(music_dir)
         except Exception as exc:

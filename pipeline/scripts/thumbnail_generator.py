@@ -43,7 +43,9 @@ _INTENT_BG: dict[str, tuple[int, int, int]] = {
     "MEDICINE":    (64,  0,  18),
     "MATHEMATICS": (0,  12,  55),
     "ECONOMICS":   (0,  40,  12),
-    "PHYSICS":     (55, 22,   0),
+    "PHYSICS":        (55, 22,   0),
+    "MYSTERY":        (20,  0,  50),
+    "ISLAMIC_SCIENCE": (0,  40,  20),
 }
 
 _INTENT_PILL_COLOR: dict[str, tuple[int, int, int]] = {
@@ -61,7 +63,9 @@ _INTENT_PILL_COLOR: dict[str, tuple[int, int, int]] = {
     "MEDICINE":    (160,  0,  50),
     "MATHEMATICS": (0,   50, 150),
     "ECONOMICS":   (0,  110,  40),
-    "PHYSICS":     (160, 60,   0),
+    "PHYSICS":        (160, 60,   0),
+    "MYSTERY":        (80,   0, 140),
+    "ISLAMIC_SCIENCE": (0, 120,  60),
 }
 
 _INTENT_ACCENT: dict[str, tuple[int, int, int]] = {
@@ -79,7 +83,9 @@ _INTENT_ACCENT: dict[str, tuple[int, int, int]] = {
     "MEDICINE":    (255,  70, 110),
     "MATHEMATICS": (90,  175, 255),
     "ECONOMICS":   (40,  215,  90),
-    "PHYSICS":     (255, 130,  40),
+    "PHYSICS":        (255, 130,  40),
+    "MYSTERY":        (200,  70, 255),
+    "ISLAMIC_SCIENCE": (70, 210, 140),
 }
 
 # Box background color (for highlight_box layout) — vivid, high-contrast
@@ -98,7 +104,9 @@ _INTENT_BOX_COLOR: dict[str, tuple[int, int, int]] = {
     "MEDICINE":    (180,   0,  50),
     "MATHEMATICS": (0,   50, 180),
     "ECONOMICS":   (0,  130,  40),
-    "PHYSICS":     (180,  50,   0),
+    "PHYSICS":        (180,  50,   0),
+    "MYSTERY":        (60,   0, 120),
+    "ISLAMIC_SCIENCE": (0,  100,  40),
 }
 
 _STOP_WORDS = {
@@ -160,7 +168,9 @@ _INTENT_THUMB_STYLE: dict[str, str] = {
     "MEDICINE":    "dramatic microscopic cellular world, glowing virus visualization, medical breakthrough",
     "MATHEMATICS": "dramatic fractal geometry, abstract mathematical dimension, impossible structure",
     "ECONOMICS":   "dramatic financial collapse visualization, glowing global market data, crisis scene",
-    "PHYSICS":     "particle accelerator explosion, quantum visualization, dramatic energy wave",
+    "PHYSICS":        "particle accelerator explosion, quantum visualization, dramatic energy wave",
+    "MYSTERY":        "dark mysterious corridor, cryptic symbols glowing, eerie foggy ancient ruins, paranormal scene",
+    "ISLAMIC_SCIENCE": "golden age islamic architecture, intricate geometric patterns glowing, ancient arabic astronomy",
 }
 
 
@@ -198,7 +208,9 @@ _INTENT_BG_QUERIES: dict[str, str] = {
     "MEDICINE":    "medical science cell microscope dramatic",
     "MATHEMATICS": "geometric pattern abstract dramatic light",
     "ECONOMICS":   "financial city architecture wealth dramatic",
-    "PHYSICS":     "energy wave particle physics abstract",
+    "PHYSICS":        "energy wave particle physics abstract",
+    "MYSTERY":        "dark foggy forest mysterious light paranormal",
+    "ISLAMIC_SCIENCE": "ancient mosque architecture golden geometric pattern",
 }
 
 # ── AI background generation ──────────────────────────────────────────────────
