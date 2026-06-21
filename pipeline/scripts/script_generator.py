@@ -388,16 +388,24 @@ Your scripts use retention psychology to make viewers feel they can't stop watch
 Content: real-world facts — mystery, psychology, science, technology, Islamic science, history.
 ACCURACY RULE: Every fact, number, and claim must be real and verifiable. Never invent statistics or events. If verified facts are provided below, treat them as ground truth.
 
-LANGUAGE RULE (non-negotiable — this is the most important rule):
-Write ALL script segments (HOOK, TENSION, CORE, PAYOFF, CLOSE) in ROMAN URDU.
-Roman Urdu = Urdu language written in Latin/English alphabet, exactly as Pakistani and Indian audiences speak it.
-  CORRECT: "Black holes ke paas waqt ruk jaata hai — ye sirf theory nahi, proven science hai."
-  CORRECT: "Mantis shrimp itni tez punch maarta hai jitna ek bullet chalti hai — aur ye aankh bhi nahin jhapakta."
-  CORRECT: "Duniya ka sabse zeherila jaanwar aap ke ghar ke paas ho sakta hai."
-  WRONG (English): "Black holes stop time near their event horizon."
-  WRONG (Urdu script): "بلیک ہولز وقت کو روکتے ہیں"
-ONLY English allowed: YouTube title, description, and tags (kept in English for SEO).
-Every spoken word in the video must be Roman Urdu.
+LANGUAGE RULE — ABSOLUTE. NO EXCEPTIONS. EVERY SEGMENT MUST BE ROMAN URDU.
+Roman Urdu = Urdu language written in Latin/English alphabet, as spoken by Pakistani/Indian audiences.
+
+CORRECT Roman Urdu (use this style for EVERY segment):
+  HOOK:    "Ye raaz aapki duniya ka nazariya hamesha ke liye badal dega."
+  TENSION: "Aksar log ye nahi jaante. Scientists saalon se is par research kar rahe hain."
+  CORE:    "Black holes ke paas waqt ruk jaata hai — ye sirf theory nahi, proven science hai. [WOW] Iska matlab ye hai ke ek second wahan hazaron saal ke barabar ho sakta hai."
+  PAYOFF:  "Ab aap samajh gaye hain ke ye duniya kitni ajeeb aur hairaan kar dene wali hai."
+  CLOSE:   "Aur bhi aisi batein jaanne ke liye Obscura follow karein."
+
+WRONG — NEVER write these:
+  "Black holes stop time near their event horizon." ← English, REJECTED
+  "Did you know that black holes..." ← English opener, REJECTED
+  "بلیک ہولز وقت کو روکتے ہیں" ← Urdu script, REJECTED
+  "Scientists have found that..." ← English, REJECTED
+
+ONLY English allowed: YouTube title, description, tags (SEO only — never spoken in the video).
+The voice actor speaks ONLY Roman Urdu. Every spoken word = Roman Urdu.
 
 NARRATIVE STRUCTURE THIS VIDEO: {description}
 
@@ -560,10 +568,12 @@ def _generate_cluster_script(topic: dict, video_format: str) -> dict:
     # structured user template instead.
     system_prompt = (
         "You are an educational YouTube scriptwriter for Obscura. "
-        "Write ALL script segments (HOOK, TENSION, CORE, PAYOFF, CLOSE) in Roman Urdu — "
-        "Urdu language written in Latin/English letters as spoken by Pakistani audiences. "
-        "Example: 'Black holes ke paas waqt ruk jaata hai.' NOT English. "
-        "YouTube title, description, tags stay in English for SEO. "
+        "EVERY spoken segment (HOOK, TENSION, CORE, PAYOFF, CLOSE) MUST be 100% Roman Urdu — "
+        "Urdu language written in Latin/English letters as Pakistani audiences speak it. "
+        "CORRECT: 'Ye raaz aapko hairaan kar dega. Black holes ke paas waqt ruk jaata hai.' "
+        "WRONG: 'This fact will blow your mind. Black holes stop time.' "
+        "NOT A SINGLE English sentence is allowed in any spoken segment. "
+        "YouTube title, description, tags stay in English for SEO only. "
         "Return only valid JSON, no markdown."
     )
 
@@ -867,17 +877,38 @@ def generate_script(topic: dict, logs_dir: Path | None = None) -> dict:
         if is_longform and words < 800:
             log.warning("%s script too short (%d words, need ≥800) — will retry", source, words)
             return None
-        # Reject scripts that are in English instead of Roman Urdu
+
+        # ── Roman Urdu gate — two checks ────────────────────────────────────
+        # 1. Full-script percentage: ≥8% of all words must be Urdu markers.
+        #    Pure English ≈ 0%. Mixed ≈ 3-7%. Good Roman Urdu ≈ 15-40%.
         urdu_hits = sum(1 for w in words_list if w.strip(".,!?[]()") in _URDU_MARKERS)
-        if urdu_hits < 5:
+        urdu_pct  = urdu_hits / max(words, 1)
+        if urdu_pct < 0.08:
             log.warning(
-                "%s script appears to be in English — only %d Roman Urdu markers found. "
-                "Rejecting and retrying (attempt %d).",
-                source, urdu_hits, attempt + 1,
+                "%s script is English/mixed — Urdu markers=%.0f%% (need ≥8%%). "
+                "Rejecting (attempt %d).",
+                source, urdu_pct * 100, attempt + 1,
             )
             return None
-        log.info("Script OK — %d words, %d Urdu markers, via %s [%s/%s]",
-                 words, urdu_hits, source, video_format, template_name)
+
+        # 2. Per-segment check: every segment longer than 12 words must have ≥2 Urdu markers.
+        #    Catches the case where HOOK or CLOSE is entirely English while CORE is Urdu.
+        for seg in script.get("segments", []):
+            seg_text  = seg.get("text", "")
+            seg_words = seg_text.lower().split()
+            if len(seg_words) < 12:
+                continue  # short segments (transitional phrases) get a pass
+            seg_hits = sum(1 for w in seg_words if w.strip(".,!?[]()") in _URDU_MARKERS)
+            if seg_hits < 2:
+                log.warning(
+                    "%s segment %s is English (%d Urdu markers in %d words) — "
+                    "rejecting whole script (attempt %d).",
+                    source, seg.get("label", "?"), seg_hits, len(seg_words), attempt + 1,
+                )
+                return None
+
+        log.info("Script OK — %d words, %.0f%% Urdu, via %s [%s/%s]",
+                 words, urdu_pct * 100, source, video_format, template_name)
         return script
 
     # ── 1. Gemini (free, 8192 output tokens, high rate limits) ───────────────
