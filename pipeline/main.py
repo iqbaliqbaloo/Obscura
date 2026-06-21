@@ -84,6 +84,7 @@ from video_formatter     import make_portrait
 from telegram_uploader   import upload_to_telegram
 from tiktok_uploader     import upload_to_tiktok
 from makecom_uploader    import upload_to_facebook, upload_to_instagram
+from cloudinary_uploader import upload_video as upload_to_cloudinary
 from news_analytics      import log_result, predict_retention_risk, update_velocity_queue
 
 
@@ -623,10 +624,16 @@ def run_pipeline() -> bool:
             tt_ok = upload_to_tiktok(portrait_path, title[:150], desc_short)
             log.info("  TikTok: %s", "OK" if tt_ok else "SKIPPED/FAILED")
 
-            # ── 13e: Facebook + Instagram via Make.com ────────────────────────
-            log.info("[13e] Make.com (Facebook + Instagram)")
-            fb_ok = upload_to_facebook(yt_url, title, desc_short)
-            ig_ok = upload_to_instagram(yt_url, telegram_caption)
+            # ── 13e: Cloudinary + Facebook Reels + Instagram Reels ───────────
+            log.info("[13e] Cloudinary upload (for Facebook/Instagram Reels)")
+            cloudinary_url = upload_to_cloudinary(portrait_path)
+            video_url_for_social = cloudinary_url or yt_url
+            if not cloudinary_url:
+                log.warning("  Cloudinary skipped — Make.com will receive YouTube URL (Reels upload may fail)")
+
+            log.info("[13f] Make.com (Facebook Reels + Instagram Reels)")
+            fb_ok = upload_to_facebook(video_url_for_social, title, desc_short)
+            ig_ok = upload_to_instagram(video_url_for_social, telegram_caption)
             log.info("  Facebook: %s  Instagram: %s",
                      "OK" if fb_ok else "SKIPPED/FAILED",
                      "OK" if ig_ok else "SKIPPED/FAILED")

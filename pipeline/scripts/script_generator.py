@@ -383,8 +383,19 @@ def _load_viewer_note() -> str:
 
 _SYSTEM_TMPL = """You are a world-class educational YouTube scriptwriter for the channel "Obscura".
 Your scripts use retention psychology to make viewers feel they can't stop watching.
-Content: real-world facts in Roman Urdu — mystery, psychology, science, technology, Islamic science, history.
+Content: real-world facts — mystery, psychology, science, technology, Islamic science, history.
 ACCURACY RULE: Every fact, number, and claim must be real and verifiable. Never invent statistics or events. If verified facts are provided below, treat them as ground truth.
+
+LANGUAGE RULE (non-negotiable — this is the most important rule):
+Write ALL script segments (HOOK, TENSION, CORE, PAYOFF, CLOSE) in ROMAN URDU.
+Roman Urdu = Urdu language written in Latin/English alphabet, exactly as Pakistani and Indian audiences speak it.
+  CORRECT: "Black holes ke paas waqt ruk jaata hai — ye sirf theory nahi, proven science hai."
+  CORRECT: "Mantis shrimp itni tez punch maarta hai jitna ek bullet chalti hai — aur ye aankh bhi nahin jhapakta."
+  CORRECT: "Duniya ka sabse zeherila jaanwar aap ke ghar ke paas ho sakta hai."
+  WRONG (English): "Black holes stop time near their event horizon."
+  WRONG (Urdu script): "بلیک ہولز وقت کو روکتے ہیں"
+ONLY English allowed: YouTube title, description, and tags (kept in English for SEO).
+Every spoken word in the video must be Roman Urdu.
 
 NARRATIVE STRUCTURE THIS VIDEO: {description}
 
@@ -547,7 +558,11 @@ def _generate_cluster_script(topic: dict, video_format: str) -> dict:
     # structured user template instead.
     system_prompt = (
         "You are an educational YouTube scriptwriter for Obscura. "
-        "Write factual, engaging scripts in Roman Urdu style. Return only valid JSON, no markdown."
+        "Write ALL script segments (HOOK, TENSION, CORE, PAYOFF, CLOSE) in Roman Urdu — "
+        "Urdu language written in Latin/English letters as spoken by Pakistani audiences. "
+        "Example: 'Black holes ke paas waqt ruk jaata hai.' NOT English. "
+        "YouTube title, description, tags stay in English for SEO. "
+        "Return only valid JSON, no markdown."
     )
 
     filled_prompt = _CLUSTER_USER_TMPL.format(

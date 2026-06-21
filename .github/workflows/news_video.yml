@@ -48,7 +48,7 @@ jobs:
           ffmpeg -version | head -1
 
       - name: Install Python dependencies
-        run: pip install requests gtts edge-tts rapidfuzz Pillow pytrends
+        run: pip install requests gtts edge-tts rapidfuzz Pillow pytrends cloudinary
 
       - name: Create runtime directories
         run: |
@@ -92,6 +92,9 @@ jobs:
           TIKTOK_ACCESS_TOKEN:       ${{ secrets.TIKTOK_ACCESS_TOKEN }}
           MAKECOM_FACEBOOK_WEBHOOK:  ${{ secrets.MAKECOM_FACEBOOK_WEBHOOK }}
           MAKECOM_INSTAGRAM_WEBHOOK: ${{ secrets.MAKECOM_INSTAGRAM_WEBHOOK }}
+          CLOUDINARY_CLOUD_NAME:     ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY:        ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET:     ${{ secrets.CLOUDINARY_API_SECRET }}
           GMAIL_SENDER:              ${{ secrets.GMAIL_SENDER }}
           GMAIL_APP_PASSWORD:        ${{ secrets.GMAIL_APP_PASSWORD }}
         run: |
@@ -284,7 +287,7 @@ jobs:
           sudo apt-get install -y ffmpeg fonts-dejavu fonts-liberation libass-dev
 
       - name: Install Python dependencies
-        run: pip install requests gtts edge-tts rapidfuzz Pillow pytrends
+        run: pip install requests gtts edge-tts rapidfuzz Pillow pytrends cloudinary
 
       - name: Create runtime directories
         run: |
@@ -320,6 +323,9 @@ jobs:
           TIKTOK_ACCESS_TOKEN:       ${{ secrets.TIKTOK_ACCESS_TOKEN }}
           MAKECOM_FACEBOOK_WEBHOOK:  ${{ secrets.MAKECOM_FACEBOOK_WEBHOOK }}
           MAKECOM_INSTAGRAM_WEBHOOK: ${{ secrets.MAKECOM_INSTAGRAM_WEBHOOK }}
+          CLOUDINARY_CLOUD_NAME:     ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY:        ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET:     ${{ secrets.CLOUDINARY_API_SECRET }}
           GMAIL_SENDER:              ${{ secrets.GMAIL_SENDER }}
           GMAIL_APP_PASSWORD:        ${{ secrets.GMAIL_APP_PASSWORD }}
         run: |
@@ -363,7 +369,7 @@ jobs:
           sudo apt-get install -y ffmpeg fonts-dejavu fonts-liberation libass-dev
 
       - name: Install Python dependencies
-        run: pip install requests gtts edge-tts rapidfuzz Pillow pytrends
+        run: pip install requests gtts edge-tts rapidfuzz Pillow pytrends cloudinary
 
       - name: Create runtime directories
         run: |
@@ -398,6 +404,9 @@ jobs:
           TIKTOK_ACCESS_TOKEN:       ${{ secrets.TIKTOK_ACCESS_TOKEN }}
           MAKECOM_FACEBOOK_WEBHOOK:  ${{ secrets.MAKECOM_FACEBOOK_WEBHOOK }}
           MAKECOM_INSTAGRAM_WEBHOOK: ${{ secrets.MAKECOM_INSTAGRAM_WEBHOOK }}
+          CLOUDINARY_CLOUD_NAME:     ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY:        ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET:     ${{ secrets.CLOUDINARY_API_SECRET }}
           GMAIL_SENDER:              ${{ secrets.GMAIL_SENDER }}
           GMAIL_APP_PASSWORD:        ${{ secrets.GMAIL_APP_PASSWORD }}
         run: |
