@@ -76,17 +76,21 @@ def extract_reference_wav() -> Path | None:
     return None
 
 
-# Module-level cache so the model is only loaded once per process
+# Module-level cache so the model is only loaded once per process.
+# _xtts_broken is set True after the first confirmed failure so subsequent
+# scenes skip the model-load attempt entirely instead of retrying every time.
 _tts_instance = None
+_xtts_broken  = False
 
 
 def _get_tts():
-    global _tts_instance
+    global _tts_instance, _xtts_broken
+    if _xtts_broken:
+        return None
     if _tts_instance is not None:
         return _tts_instance
 
     # Auto-accept Coqui TOS so the pipeline never blocks on an interactive prompt.
-    # This is the standard CI/CD approach documented by Coqui.
     os.environ.setdefault("COQUI_TOS_AGREED", "1")
 
     try:
@@ -98,7 +102,8 @@ def _get_tts():
         log.info("XTTS: model loaded successfully")
         return tts
     except Exception as exc:
-        log.warning("XTTS: model load failed: %s", exc)
+        log.warning("XTTS: model load failed: %s — skipping XTTS for remaining scenes", exc)
+        _xtts_broken = True
         return None
 
 
