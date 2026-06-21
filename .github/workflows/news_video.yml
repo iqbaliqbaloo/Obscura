@@ -1,20 +1,17 @@
-name: MindBlownFacts Video Pipeline
+name: Obscura Video Pipeline
 
 on:
   schedule:
-    # ── Video uploads: 3 Shorts/day + 1 bonus/day ───────────────────────────────
-    # (PKT = UTC+5)
-    - cron: '0 5 * * *'   # 05:00 UTC │ 10:00 AM PKT │ SHORT #1  — US West Coast 10 PM + UK 5 AM early risers
-    # - cron: '0 11 * * *'  # 11:00 UTC │  4:00 PM PKT │ STANDARD  — disabled (ElevenLabs quota conservation)
-    - cron: '0 14 * * *'  # 14:00 UTC │  7:00 PM PKT │ SHORT #2  — UK prime-time + US lunch
-    - cron: '0 20 * * *'  # 20:00 UTC │  1:00 AM PKT │ SHORT #3  — UK prime evening (8 PM GMT) + US afternoon
-    - cron: '0 0 * * *'   # 00:00 UTC │  5:00 AM PKT │ BONUS     — US prime time 7 PM ET / 4 PM PT (highest US traffic)
-    # ── Background tasks — always running ──────────────────────────────────────
-    - cron: '0 * * * *'   # Every hour — comment auto-responder + news monitor
+    - cron: '0 5 * * *'    # 05:00 UTC | 10:00 AM PKT | SHORT #1
+    - cron: '0 14 * * *'   # 14:00 UTC |  7:00 PM PKT | SHORT #2
+    - cron: '0 20 * * *'   # 20:00 UTC |  1:00 AM PKT | SHORT #3
+    - cron: '0 0 * * *'    # 00:00 UTC |  5:00 AM PKT | BONUS Technology standard
+    - cron: '0 3 * * 5'    # 03:00 UTC |  8:00 AM PKT | FRIDAY Islamic Science long
+    - cron: '0 * * * *'    # Every hour — comment responder + news monitor
   workflow_dispatch:
     inputs:
       intent_override:
-        description: 'Force category (SPACE/SCIENCE/HISTORY/ANIMALS/NATURE/GEOGRAPHY/OCEAN/CULTURE/TECHNOLOGY/PSYCHOLOGY/MYTHOLOGY/MEDICINE/MATHEMATICS/ECONOMICS/PHYSICS)'
+        description: 'Force category (MYSTERY/PSYCHOLOGY/SCIENCE/TECHNOLOGY/ISLAMIC_SCIENCE/HISTORY)'
         required: false
         default: ''
       video_format:
@@ -68,38 +65,37 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "format=${{ github.event.inputs.video_format || 'shorts' }}" >> $GITHUB_OUTPUT
           else
-            # 05:00, 14:00, 20:00 UTC = Shorts
             echo "format=shorts" >> $GITHUB_OUTPUT
           fi
 
       - name: Run Video Pipeline
         env:
-          VIDEO_FORMAT:          ${{ steps.fmt.outputs.format }}
-          INTENT_OVERRIDE:       ${{ github.event.inputs.intent_override }}
-          GROQ_API_KEY_1:        ${{ secrets.GROQ_API_KEY_1 }}
-          GROQ_API_KEY_2:        ${{ secrets.GROQ_API_KEY_2 }}
-          GROQ_API_KEY_3:        ${{ secrets.GROQ_API_KEY_3 }}
-          GROQ_API_KEY_4:        ${{ secrets.GROQ_API_KEY_4 }}
-          GEMINI_API_KEY:        ${{ secrets.GEMINI_API_KEY }}
-          ELEVENLABS_API_KEY:    ${{ secrets.ELEVENLABS_API_KEY }}
-          ELEVENLABS_API_KEY_2:  ${{ secrets.ELEVENLABS_API_KEY_2 }}
-          ELEVENLABS_API_KEY_3:  ${{ secrets.ELEVENLABS_API_KEY_3 }}
-          ELEVENLABS_API_KEY_4:  ${{ secrets.ELEVENLABS_API_KEY_4 }}
-          PEXELS_API_KEY:        ${{ secrets.PEXELS_API_KEY }}
-          PIXABAY_API_KEY:       ${{ secrets.PIXABAY_API_KEY }}
-          YOUTUBE_API_KEY:       ${{ secrets.YOUTUBE_API_KEY }}
-          YOUTUBE_CLIENT_ID:     ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          GMAIL_SENDER:            ${{ secrets.GMAIL_SENDER }}
-          GMAIL_APP_PASSWORD:      ${{ secrets.GMAIL_APP_PASSWORD }}
-          HUGGINGFACE_API_KEY_1:   ${{ secrets.HUGGINGFACE_API_KEY_1 }}
-          HUGGINGFACE_API_KEY_2:   ${{ secrets.HUGGINGFACE_API_KEY_2 }}
-          HUGGINGFACE_API_KEY_3:   ${{ secrets.HUGGINGFACE_API_KEY_3 }}
-          HUGGINGFACE_API_KEY_4:   ${{ secrets.HUGGINGFACE_API_KEY_4 }}
-          HUGGINGFACE_API_KEY_5:   ${{ secrets.HUGGINGFACE_API_KEY_5 }}
+          VIDEO_FORMAT:              ${{ steps.fmt.outputs.format }}
+          INTENT_OVERRIDE:           ${{ github.event.inputs.intent_override }}
+          GROQ_API_KEY_1:            ${{ secrets.GROQ_API_KEY_1 }}
+          GROQ_API_KEY_2:            ${{ secrets.GROQ_API_KEY_2 }}
+          GROQ_API_KEY_3:            ${{ secrets.GROQ_API_KEY_3 }}
+          GROQ_API_KEY_4:            ${{ secrets.GROQ_API_KEY_4 }}
+          GEMINI_API_KEY:            ${{ secrets.GEMINI_API_KEY }}
+          ELEVENLABS_API_KEY:        ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_API_KEY_2:      ${{ secrets.ELEVENLABS_API_KEY_2 }}
+          ELEVENLABS_API_KEY_3:      ${{ secrets.ELEVENLABS_API_KEY_3 }}
+          ELEVENLABS_API_KEY_4:      ${{ secrets.ELEVENLABS_API_KEY_4 }}
+          PEXELS_API_KEY:            ${{ secrets.PEXELS_API_KEY }}
+          PIXABAY_API_KEY:           ${{ secrets.PIXABAY_API_KEY }}
+          YOUTUBE_API_KEY:           ${{ secrets.YOUTUBE_API_KEY }}
+          YOUTUBE_CLIENT_ID:         ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET:     ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN:     ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          TELEGRAM_BOT_TOKEN:        ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHANNEL_ID:       ${{ secrets.TELEGRAM_CHANNEL_ID }}
+          TIKTOK_ACCESS_TOKEN:       ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+          MAKECOM_FACEBOOK_WEBHOOK:  ${{ secrets.MAKECOM_FACEBOOK_WEBHOOK }}
+          MAKECOM_INSTAGRAM_WEBHOOK: ${{ secrets.MAKECOM_INSTAGRAM_WEBHOOK }}
+          GMAIL_SENDER:              ${{ secrets.GMAIL_SENDER }}
+          GMAIL_APP_PASSWORD:        ${{ secrets.GMAIL_APP_PASSWORD }}
         run: |
-          echo "=== MindBlownFacts Video Pipeline — format=$VIDEO_FORMAT ==="
+          echo "=== Obscura Video Pipeline — format=$VIDEO_FORMAT ==="
           python pipeline/main.py
           echo ""
           echo "=== Output files ==="
@@ -109,14 +105,13 @@ jobs:
         if: always()
         continue-on-error: true
         run: |
-          git config user.name  "VisionaryMinds Bot"
-          git config user.email "bot@visionaryminds.com"
+          git config user.name  "Obscura Bot"
+          git config user.email "bot@obscura.ai"
           git add pipeline/logs/ 2>/dev/null || true
           git diff --staged --quiet || \
             git commit -m "bot: update pipeline logs [skip ci]"
           git push 2>/dev/null || true
 
-  # ── News monitor (runs every hour — saves trigger to file; bonus-video job picks it up at 9 AM PKT) ──
   news-monitor:
     runs-on: ubuntu-latest
     if: always()
@@ -145,14 +140,11 @@ jobs:
           from news_monitor import run_news_monitor
           triggered = run_news_monitor()
           print('Triggered:', triggered)
-          # Output trigger score for next step
           tp = Path('pipeline/logs/news_trigger.json')
           if tp.exists():
               d = json.loads(tp.read_text())
               score = d.get('topic', {}).get('news_score', 0)
               used  = d.get('used', False)
-              print(f'TRIGGER_SCORE={score}')
-              print(f'TRIGGER_USED={used}')
               import os; out = os.environ.get('GITHUB_OUTPUT','')
               with open(out, 'a') as f:
                   f.write(f'trigger_score={score}\n')
@@ -162,15 +154,14 @@ jobs:
       - name: Save news trigger and queue
         continue-on-error: true
         run: |
-          git config user.name  "VisionaryMinds Bot"
-          git config user.email "bot@visionaryminds.com"
+          git config user.name  "Obscura Bot"
+          git config user.email "bot@obscura.ai"
           git add pipeline/logs/news_trigger.json \
                   pipeline/logs/news_queue.json 2>/dev/null || true
           git diff --staged --quiet || \
             git commit -m "bot: news trigger [skip ci]"
           git push 2>/dev/null || true
 
-  # ── Comment auto-responder (runs every hour independently) ──────────────────
   comment-responder:
     runs-on: ubuntu-latest
     if: always()
@@ -187,6 +178,10 @@ jobs:
       - name: Reply to comments
         continue-on-error: true
         env:
+          GROQ_API_KEY_1:        ${{ secrets.GROQ_API_KEY_1 }}
+          GROQ_API_KEY_2:        ${{ secrets.GROQ_API_KEY_2 }}
+          GROQ_API_KEY_3:        ${{ secrets.GROQ_API_KEY_3 }}
+          GROQ_API_KEY_4:        ${{ secrets.GROQ_API_KEY_4 }}
           YOUTUBE_CLIENT_ID:     ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
@@ -203,8 +198,8 @@ jobs:
       - name: Save replied comments log and auto-fixes
         continue-on-error: true
         run: |
-          git config user.name  "VisionaryMinds Bot"
-          git config user.email "bot@visionaryminds.com"
+          git config user.name  "Obscura Bot"
+          git config user.email "bot@obscura.ai"
           git add pipeline/logs/replied_comments.json \
                   pipeline/logs/auto_fixes.json \
                   pipeline/logs/script_feedback.json 2>/dev/null || true
@@ -212,7 +207,6 @@ jobs:
             git commit -m "bot: update comments + auto-fixes [skip ci]"
           git push 2>/dev/null || true
 
-  # ── Analytics refresh (runs only on the 12:00 UTC job) ───────────────────────
   analytics-refresh:
     runs-on: ubuntu-latest
     needs: news-video
@@ -250,28 +244,23 @@ jobs:
           print('Feedback hints:', hints)
           if hints.get('retention_signal'):
               apply_adaptive_learning(hints, logs)
-              print('Adaptive learning applied:', hints.get('retention_signal'))
           fetch_peak_hours(logs)
           update_velocity_queue(logs)
           auto_improve_low_ctr(logs)
-          print('CTR improvement check complete')
           "
 
       - name: Save analytics data
         continue-on-error: true
         run: |
-          git config user.name  "VisionaryMinds Bot"
-          git config user.email "bot@visionaryminds.com"
+          git config user.name  "Obscura Bot"
+          git config user.email "bot@obscura.ai"
           git add pipeline/logs/analytics_data.json \
-                  pipeline/logs/video_results.json 2>/dev/null || true
+                  pipeline/logs/video_results.json \
+                  pipeline/logs/adaptive_params.json 2>/dev/null || true
           git diff --staged --quiet || \
             git commit -m "bot: update analytics data [skip ci]"
           git push 2>/dev/null || true
 
-  # ── Bonus video — AI & Technology daily, 00:00 UTC (7 PM ET / 5 AM PKT) ──────
-  # Uploads EVERY DAY — no trigger score threshold required.
-  # Topic = today's real AI/tech news, verified not fake via Groq.
-  # Falls back to Groq-generated AI/tech topic if RSS is unavailable.
   bonus-video:
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -306,34 +295,35 @@ jobs:
                    pipeline/output         \
                    pipeline/logs
 
-      - name: Run AI & Technology Bonus Video Pipeline
+      - name: Run Technology Bonus Video Pipeline
         env:
-          VIDEO_FORMAT:          standard
-          TOPIC_SOURCE:          rss
-          GROQ_API_KEY_1:        ${{ secrets.GROQ_API_KEY_1 }}
-          GROQ_API_KEY_2:        ${{ secrets.GROQ_API_KEY_2 }}
-          GROQ_API_KEY_3:        ${{ secrets.GROQ_API_KEY_3 }}
-          GROQ_API_KEY_4:        ${{ secrets.GROQ_API_KEY_4 }}
-          GEMINI_API_KEY:        ${{ secrets.GEMINI_API_KEY }}
-          ELEVENLABS_API_KEY:    ${{ secrets.ELEVENLABS_API_KEY }}
-          ELEVENLABS_API_KEY_2:  ${{ secrets.ELEVENLABS_API_KEY_2 }}
-          ELEVENLABS_API_KEY_3:  ${{ secrets.ELEVENLABS_API_KEY_3 }}
-          ELEVENLABS_API_KEY_4:  ${{ secrets.ELEVENLABS_API_KEY_4 }}
-          PEXELS_API_KEY:        ${{ secrets.PEXELS_API_KEY }}
-          PIXABAY_API_KEY:       ${{ secrets.PIXABAY_API_KEY }}
-          YOUTUBE_API_KEY:       ${{ secrets.YOUTUBE_API_KEY }}
-          YOUTUBE_CLIENT_ID:     ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          GMAIL_SENDER:            ${{ secrets.GMAIL_SENDER }}
-          GMAIL_APP_PASSWORD:      ${{ secrets.GMAIL_APP_PASSWORD }}
-          HUGGINGFACE_API_KEY_1:   ${{ secrets.HUGGINGFACE_API_KEY_1 }}
-          HUGGINGFACE_API_KEY_2:   ${{ secrets.HUGGINGFACE_API_KEY_2 }}
-          HUGGINGFACE_API_KEY_3:   ${{ secrets.HUGGINGFACE_API_KEY_3 }}
-          HUGGINGFACE_API_KEY_4:   ${{ secrets.HUGGINGFACE_API_KEY_4 }}
-          HUGGINGFACE_API_KEY_5:   ${{ secrets.HUGGINGFACE_API_KEY_5 }}
+          VIDEO_FORMAT:              standard
+          INTENT_OVERRIDE:           TECHNOLOGY
+          TOPIC_SOURCE:              rss
+          GROQ_API_KEY_1:            ${{ secrets.GROQ_API_KEY_1 }}
+          GROQ_API_KEY_2:            ${{ secrets.GROQ_API_KEY_2 }}
+          GROQ_API_KEY_3:            ${{ secrets.GROQ_API_KEY_3 }}
+          GROQ_API_KEY_4:            ${{ secrets.GROQ_API_KEY_4 }}
+          GEMINI_API_KEY:            ${{ secrets.GEMINI_API_KEY }}
+          ELEVENLABS_API_KEY:        ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_API_KEY_2:      ${{ secrets.ELEVENLABS_API_KEY_2 }}
+          ELEVENLABS_API_KEY_3:      ${{ secrets.ELEVENLABS_API_KEY_3 }}
+          ELEVENLABS_API_KEY_4:      ${{ secrets.ELEVENLABS_API_KEY_4 }}
+          PEXELS_API_KEY:            ${{ secrets.PEXELS_API_KEY }}
+          PIXABAY_API_KEY:           ${{ secrets.PIXABAY_API_KEY }}
+          YOUTUBE_API_KEY:           ${{ secrets.YOUTUBE_API_KEY }}
+          YOUTUBE_CLIENT_ID:         ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET:     ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN:     ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          TELEGRAM_BOT_TOKEN:        ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHANNEL_ID:       ${{ secrets.TELEGRAM_CHANNEL_ID }}
+          TIKTOK_ACCESS_TOKEN:       ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+          MAKECOM_FACEBOOK_WEBHOOK:  ${{ secrets.MAKECOM_FACEBOOK_WEBHOOK }}
+          MAKECOM_INSTAGRAM_WEBHOOK: ${{ secrets.MAKECOM_INSTAGRAM_WEBHOOK }}
+          GMAIL_SENDER:              ${{ secrets.GMAIL_SENDER }}
+          GMAIL_APP_PASSWORD:        ${{ secrets.GMAIL_APP_PASSWORD }}
         run: |
-          echo "=== MindBlownFacts AI & Technology Bonus — 00:00 UTC / 7 PM ET / 5 AM PKT ==="
+          echo "=== Obscura Technology Bonus — 00:00 UTC / 5 AM PKT ==="
           python pipeline/main.py
           echo ""
           echo "=== Output files ==="
@@ -343,9 +333,87 @@ jobs:
         if: always()
         continue-on-error: true
         run: |
-          git config user.name  "VisionaryMinds Bot"
-          git config user.email "bot@visionaryminds.com"
+          git config user.name  "Obscura Bot"
+          git config user.email "bot@obscura.ai"
           git add pipeline/logs/ 2>/dev/null || true
           git diff --staged --quiet || \
-            git commit -m "bot: AI tech bonus video logs [skip ci]"
+            git commit -m "bot: technology bonus video logs [skip ci]"
+          git push 2>/dev/null || true
+
+  friday-islamic-bonus:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    if: github.event.schedule == '0 3 * * 5'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-dejavu fonts-liberation libass-dev
+
+      - name: Install Python dependencies
+        run: pip install requests gtts edge-tts rapidfuzz Pillow pytrends
+
+      - name: Create runtime directories
+        run: |
+          mkdir -p pipeline/temp/voice     \
+                   pipeline/temp/visuals   \
+                   pipeline/temp/subtitles \
+                   pipeline/temp/scenes    \
+                   pipeline/output         \
+                   pipeline/logs
+
+      - name: Run Islamic Science Long Video Pipeline
+        env:
+          VIDEO_FORMAT:              long
+          INTENT_OVERRIDE:           ISLAMIC_SCIENCE
+          GROQ_API_KEY_1:            ${{ secrets.GROQ_API_KEY_1 }}
+          GROQ_API_KEY_2:            ${{ secrets.GROQ_API_KEY_2 }}
+          GROQ_API_KEY_3:            ${{ secrets.GROQ_API_KEY_3 }}
+          GROQ_API_KEY_4:            ${{ secrets.GROQ_API_KEY_4 }}
+          GEMINI_API_KEY:            ${{ secrets.GEMINI_API_KEY }}
+          ELEVENLABS_API_KEY:        ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_API_KEY_2:      ${{ secrets.ELEVENLABS_API_KEY_2 }}
+          ELEVENLABS_API_KEY_3:      ${{ secrets.ELEVENLABS_API_KEY_3 }}
+          ELEVENLABS_API_KEY_4:      ${{ secrets.ELEVENLABS_API_KEY_4 }}
+          PEXELS_API_KEY:            ${{ secrets.PEXELS_API_KEY }}
+          PIXABAY_API_KEY:           ${{ secrets.PIXABAY_API_KEY }}
+          YOUTUBE_API_KEY:           ${{ secrets.YOUTUBE_API_KEY }}
+          YOUTUBE_CLIENT_ID:         ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET:     ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN:     ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          TELEGRAM_BOT_TOKEN:        ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHANNEL_ID:       ${{ secrets.TELEGRAM_CHANNEL_ID }}
+          TIKTOK_ACCESS_TOKEN:       ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+          MAKECOM_FACEBOOK_WEBHOOK:  ${{ secrets.MAKECOM_FACEBOOK_WEBHOOK }}
+          MAKECOM_INSTAGRAM_WEBHOOK: ${{ secrets.MAKECOM_INSTAGRAM_WEBHOOK }}
+          GMAIL_SENDER:              ${{ secrets.GMAIL_SENDER }}
+          GMAIL_APP_PASSWORD:        ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: |
+          echo "=== Obscura Islamic Science Long — 03:00 UTC / 8 AM PKT (Friday) ==="
+          python pipeline/main.py
+          echo ""
+          echo "=== Output files ==="
+          ls -lh pipeline/output/ 2>/dev/null || echo "(no output files)"
+
+      - name: Save logs to repository
+        if: always()
+        continue-on-error: true
+        run: |
+          git config user.name  "Obscura Bot"
+          git config user.email "bot@obscura.ai"
+          git add pipeline/logs/ 2>/dev/null || true
+          git diff --staged --quiet || \
+            git commit -m "bot: islamic science long video logs [skip ci]"
           git push 2>/dev/null || true

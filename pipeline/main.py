@@ -80,6 +80,10 @@ from quality_gate        import run_quality_gate
 from thumbnail_generator import generate_thumbnail
 from ctr_optimizer       import optimize_ctr
 from uploader            import upload_video
+from video_formatter     import make_portrait
+from telegram_uploader   import upload_to_telegram
+from tiktok_uploader     import upload_to_tiktok
+from makecom_uploader    import upload_to_facebook, upload_to_instagram
 from news_analytics      import log_result, predict_retention_risk, update_velocity_queue
 
 
@@ -573,6 +577,59 @@ def run_pipeline() -> bool:
             )
             return False
         log.info("  https://youtu.be/%s", video_id)
+
+        # ── 13b: Portrait conversion (standard/long only — Shorts already 9:16) ──
+        log.info("[13b] Portrait Conversion")
+        yt_url = f"https://youtu.be/{video_id}"
+        if profile == "shorts":
+            portrait_path = output_path
+            log.info("  Shorts already 9:16 — no conversion needed")
+        else:
+            portrait_path = OUTPUT_DIR / f"{topic['intent']}_{ts}_{profile}_portrait.mp4"
+            result = make_portrait(output_path, portrait_path)
+            if result:
+                log.info("  Portrait: %s", portrait_path.name)
+            else:
+                log.warning("  Portrait conversion failed — skipping social uploads")
+                portrait_path = None
+
+        if portrait_path and portrait_path.exists():
+            meta  = script.get("metadata", {})
+            title = meta.get("title", topic["title"])
+            desc  = meta.get("description", "")
+            desc_short = desc.split("\n")[0][:200] if desc else ""
+            tags  = meta.get("tags", [])
+            hashtags = " ".join(
+                f"#{t.replace(' ', '')}" for t in tags[:5] if t and len(t) < 20
+            ) + " #Obscura #RomanUrdu #Facts"
+
+            telegram_caption = (
+                f"<b>{title}</b>\n\n"
+                f"{desc_short}\n\n"
+                f"▶️ {yt_url}\n\n"
+                f"{hashtags}"
+            )
+
+            # ── 13c: Telegram ─────────────────────────────────────────────────
+            log.info("[13c] Telegram Upload")
+            tg_ok = upload_to_telegram(
+                portrait_path, telegram_caption,
+                thumbnail_path=thumb_path if thumb_path.exists() else None,
+            )
+            log.info("  Telegram: %s", "OK" if tg_ok else "SKIPPED/FAILED")
+
+            # ── 13d: TikTok ───────────────────────────────────────────────────
+            log.info("[13d] TikTok Upload")
+            tt_ok = upload_to_tiktok(portrait_path, title[:150], desc_short)
+            log.info("  TikTok: %s", "OK" if tt_ok else "SKIPPED/FAILED")
+
+            # ── 13e: Facebook + Instagram via Make.com ────────────────────────
+            log.info("[13e] Make.com (Facebook + Instagram)")
+            fb_ok = upload_to_facebook(yt_url, title, desc_short)
+            ig_ok = upload_to_instagram(yt_url, telegram_caption)
+            log.info("  Facebook: %s  Instagram: %s",
+                     "OK" if fb_ok else "SKIPPED/FAILED",
+                     "OK" if ig_ok else "SKIPPED/FAILED")
 
         # ── 14: Analytics ─────────────────────────────────────────────────────
         log.info("[14/14] Analytics")
