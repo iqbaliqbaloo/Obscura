@@ -113,7 +113,7 @@ _FORMAT_PROFILES: dict[str, dict] = {
     "shorts": {
         "word_target":   "95-115 words total",
         "duration_hint": "~40 seconds",
-        "core_depth":    "3 short punchy sentences MAX. One fact per sentence. Cut every word that doesn't shock.",
+        "core_depth":    "3-5 sentences. FIRST sentence: the direct, specific answer to what the title promises — must include a real number, named mechanism, or concrete comparison. NEXT 2-3 sentences: prove and deepen the first fact. One fact per sentence. No filler.",
         "max_tokens":    1200,
     },
     "standard": {
@@ -258,6 +258,13 @@ NO CLOSE SEGMENT FOR SHORTS:
 EVERY SENTENCE:
 8. No filler: never 'So', 'Basically', 'In other words', 'To summarize', 'Essentially'.
 9. Every sentence = a fact or a stakes-raise. Nothing else.
+
+CONTENT DEPTH (equal priority to hook psychology):
+10. CORE first sentence = direct, specific answer to the title — include a real number, named mechanism, or concrete comparison.
+    Title 'Samundar Raat Ko Chamakta Hai' → 'Samundar mein 90% deep-sea creatures bioluminescent hain — khud noor banate hain apne andar ke chemical reaction se.'
+    NOT: 'Samundar mein kuch ajeeb hota hai.' ← too vague, REJECTED.
+11. At least 3 unique specific facts in CORE. "Ye bohot ajeeb hai" or "ye bilkul anokha hai" with no data = filler — delete it.
+12. Never write "scientists ne kaha" or "research se pata chala" without immediately stating the SPECIFIC finding.
 """
 
 # Standard/long-form retention rules — injected for non-shorts formats
@@ -437,6 +444,17 @@ TITLE RULES — YouTube Shorts optimised (follow ALL rules every time):
   BAD:  "The Truth Nobody Told You About Black Holes"               ← English + overused
   BAD:  "Hairaan Karne Wale DNA Facts"                              ← vague, no emoji
 
+CONTENT DEPTH — MANDATORY (retention AND information together):
+CORE must deliver real, specific knowledge — not just emotional drama:
+• Every CORE sentence must contain ONE verifiable detail: an exact number, named mechanism, scientific term, or concrete real-world comparison. Vague claims are filler.
+  WRONG: "Is cheez ki taqat bahut zyada hoti hai."
+  RIGHT: "Ek teaspoon neutron star ka weight 900 million tons hota hai — poori insaaniyat se zyada."
+• The title is a CONTRACT with the viewer. CORE must honour it completely:
+  — If title asks "kyon" → explain the exact mechanism (HOW it works, not just THAT it works).
+  — If title states a fact → give the science/history/data that PROVES it.
+  — If viewer finishes CORE without the specific answer, the script fails.
+• Write like a documentary narrator who has done the research — authoritative, not like a student who read one article. Confident declarative sentences. Never hedge real facts with "shayad" or "lagta hai".
+
 Writing style: authoritative, fast-paced, conversational.
 Respond ONLY with valid JSON. No text outside the JSON."""
 
@@ -547,6 +565,11 @@ def _generate_cluster_script(topic: dict, video_format: str) -> dict:
         "WRONG: 'This fact will blow your mind. Black holes stop time.' "
         "NOT A SINGLE English sentence is allowed in any spoken segment. "
         "YouTube title, description, tags stay in English for SEO only. "
+        "CONTENT DEPTH — MANDATORY: Every CORE sentence must contain ONE specific verifiable detail "
+        "(exact number, named mechanism, scientific term, or real-world scale comparison). "
+        "Vague claims like 'ye bohot ajeeb hai' with no data are filler — delete them. "
+        "Each chapter must fully explain its topic: the fact, the mechanism (HOW it works), and the real-world implication. "
+        "Write with the authority of a documentary narrator who has done deep research — never hedge real facts. "
         "Return only valid JSON, no markdown."
     )
 
@@ -805,9 +828,12 @@ def generate_script(topic: dict, logs_dir: Path | None = None) -> dict:
     title_str = topic["title"]
     question_directive = (
         f"\nTHIS VIDEO MUST ANSWER EXACTLY: \"{title_str}\"\n"
-        "The CORE segment must contain the direct, specific answer to this title's "
-        "implied question. Do not answer a different or broader question. "
-        "If a viewer watches and the title is not answered by the end, the script fails."
+        "CORE must deliver THREE things in order:\n"
+        "  1. ANSWER — first CORE sentence states the specific answer to the title, with a real number or mechanism.\n"
+        "  2. PROOF  — explain HOW and WHY this is true (the mechanism, not just the claim).\n"
+        "  3. IMPACT — final CORE sentence: what does this mean for the viewer in real life.\n"
+        "BANNED from CORE: any sentence that does not add new specific information.\n"
+        "TEST: if a viewer reads only CORE, they must know the complete answer to the title. If not, rewrite."
     )
     filled_prompt = _USER_TMPL.format(
         video_label      = fmt_timing["video_label"],
@@ -1068,22 +1094,33 @@ def _parse(raw: str) -> dict | None:
 def _fallback(topic: dict) -> dict:
     t   = topic["title"]
     cat = topic.get("intent", "SCIENCE")
+    desc = topic.get("description", "")[:120]
 
+    # Topic-specific hooks — still name the topic, not a generic opener
     _HOOK_BY_CAT = {
-        "MYSTERY":         "Ye anjaana raaz aapko bilkul hairaan kar dega.",
-        "PSYCHOLOGY":      "Aapka apna dimag ye sach aapse chupaata tha.",
-        "SCIENCE":         "Science ka ye amazing fact aapki duniya badal dega.",
-        "TECHNOLOGY":      "Technology ka ye raaz aapko bilkul shock kar dega.",
-        "ISLAMIC_SCIENCE": "Islam aur science ka ye rishta aap nahi jaante the.",
-        "HISTORY":         "Taareekh ka ye chupaaya hua raaz aaj sab ke saamne aayega.",
+        "MYSTERY":         f"{t} — ye raaz abhi tak poori tarah explain nahi hua.",
+        "PSYCHOLOGY":      f"{t} ke baare mein aapka dimag aapko galat bata raha tha.",
+        "SCIENCE":         f"{t} ka ye proven scientific sach aapko hairaan kar dega.",
+        "TECHNOLOGY":      f"{t} ke baare mein ye haqiqat sirf kuch log jaante hain.",
+        "ISLAMIC_SCIENCE": f"{t} — Islam aur science dono isko confirm karte hain.",
+        "HISTORY":         f"{t} — taareekh ka ye sach textbooks mein nahi milta.",
+        "SPACE":           f"{t} ke baare mein NASA ka ye data bilkul hairan karta hai.",
+        "ANIMALS":         f"{t} ka ye behavior scientists ko abhi bhi hairaan karta hai.",
+        "OCEAN":           f"{t} — samundar ki ye haqiqat surface se bilkul alag hai.",
     }
-    hook    = _HOOK_BY_CAT.get(cat, "Ye baat aapki duniya ka nazariya hamesha ke liye badal degi.")
-    tension = ("Aksar log ye nahi jaante. Lekin saalon ki research ke baad sach samne aaya. "
-               "Aur ab ye raaz chupaaya nahi ja sakta.")
-    core    = (f"{t}. [WOW] Is baat ki gehrai samajhna almost na-mumkin lagta hai. "
-               "Researchers ne decades se is par kaam kiya hai. "
-               "Aur ab saboot nakar-nahi ho sakta.")
-    payoff  = "Ab aap jaante hain duniya ke is sabse important aur anjaane raaz ki sachai."
+    hook = _HOOK_BY_CAT.get(cat, f"{t} — ye haqiqat aapki duniya ka nazariya badal degi.")
+
+    tension = (f"{t} ke baare mein aksar log galat sochte hain. "
+               "Lekin jab scientists ne gehri research ki toh jo sach samne aaya wo bilkul unexpected tha. "
+               "Ye sirf ek claim nahi — ye documented evidence hai.")
+
+    core = (f"{t} itna ajeeb isliye hai kyunki iska mechanism normal physics se alag kaam karta hai. "
+            f"[WOW] {desc or t} — is process ki wajah ye hai ke conditions yahan unique hoti hain jo kahin aur nahi milti. "
+            "Researchers ne is phenomenon ko measure kiya aur nataij ne poori scientific community ko change kar diya. "
+            "Iska real-world matlab ye hai ke jo hum pehle sochte the, wo incomplete tha.")
+
+    payoff  = (f"Ab aap samajh gaye ke {t} kyon itna exceptional hai. "
+               "Ye duniya mein sirf ek hi jagah hota hai aur iska science prove hai.")
     close   = "Aur bhi aisi batein jaanne ke liye Obscura follow karein — har roz naya raaz."
     full    = " ".join([hook, tension, core, payoff, close])
     return {
