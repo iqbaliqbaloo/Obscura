@@ -43,25 +43,49 @@ _XTTS_SPEED: dict[str, float] = {
 # ── Transformers compat patch ─────────────────────────────────────────────────
 
 def _patch_transformers_compat() -> None:
-    """Restore BeamSearchScorer for transformers >= 4.46 where it moved namespaces."""
+    """Compatibility patches for third-party library regressions.
+
+    • transformers >= 4.46: BeamSearchScorer moved to a sub-module
+    • PyTorch >= 2.6: torch.load weights_only default changed to True,
+      breaking XTTS model loading (custom config classes not whitelisted)
+    """
+    # --- Patch 1: BeamSearchScorer (transformers >= 4.46) ---
     try:
         import transformers
-        if hasattr(transformers, "BeamSearchScorer"):
-            return
-        import importlib
-        for mod_path in ("transformers.generation.beam_search", "transformers.generation"):
-            try:
-                mod = importlib.import_module(mod_path)
-                cls = getattr(mod, "BeamSearchScorer", None)
-                if cls is not None:
-                    transformers.BeamSearchScorer = cls
-                    log.debug("XTTS compat: patched BeamSearchScorer from %s", mod_path)
-                    return
-            except Exception:
-                continue
-        log.warning("XTTS compat: BeamSearchScorer not found — XTTS may fail")
+        if not hasattr(transformers, "BeamSearchScorer"):
+            import importlib
+            for mod_path in ("transformers.generation.beam_search",
+                             "transformers.generation"):
+                try:
+                    mod = importlib.import_module(mod_path)
+                    cls = getattr(mod, "BeamSearchScorer", None)
+                    if cls is not None:
+                        transformers.BeamSearchScorer = cls
+                        log.debug("XTTS compat: patched BeamSearchScorer from %s", mod_path)
+                        break
+                except Exception:
+                    continue
+            else:
+                log.warning("XTTS compat: BeamSearchScorer not found — XTTS may fail")
     except Exception as exc:
-        log.debug("XTTS compat patch: %s", exc)
+        log.debug("XTTS compat patch (transformers): %s", exc)
+
+    # --- Patch 2: torch.load weights_only default (PyTorch >= 2.6) ---
+    try:
+        import functools
+        import torch
+        if getattr(torch.load, "_xtts_patched", False):
+            return
+        _orig_load = torch.load
+        @functools.wraps(_orig_load)
+        def _load_xtts_safe(*args, **kwargs):
+            kwargs.setdefault("weights_only", False)
+            return _orig_load(*args, **kwargs)
+        _load_xtts_safe._xtts_patched = True
+        torch.load = _load_xtts_safe
+        log.debug("XTTS compat: patched torch.load (weights_only=False default)")
+    except Exception as exc:
+        log.debug("XTTS compat patch (torch.load): %s", exc)
 
 
 # ── Availability ──────────────────────────────────────────────────────────────
