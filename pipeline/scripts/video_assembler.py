@@ -684,20 +684,21 @@ def _xfade(a: Path, b: Path, dur: float, xf_type: str, out: Path) -> None:
 
 def _shorts_rapid_motion_vf(W: int, H: int) -> str:
     """
-    For Shorts video clips: scale up 10% then crop with a sinusoidal pan.
-    The crop window drifts left-right every 2.5s and up-down every 3.7s,
-    creating the feel of a camera cut without needing a second clip.
-    Viewers perceive it as fast editing — AVD stays high.
+    For Shorts video clips: gentle sinusoidal drift that feels like a handheld
+    camera operator rather than mechanical oscillation.
+    Slower period (7s/11s) and reduced amplitude keep movement natural.
     """
-    sw = int(W * 1.10)
-    sh = int(H * 1.10)
-    px = (sw - W) // 2   # max horizontal drift in pixels
-    py = (sh - H) // 2   # max vertical drift in pixels
+    sw = int(W * 1.08)
+    sh = int(H * 1.08)
+    px = (sw - W) // 2
+    py = (sh - H) // 2
+    ax = int(px * 0.6)   # 60% of max drift for natural feel
+    ay = int(py * 0.5)   # 50% of max drift
     return (
         f"scale={sw}:{sh}:force_original_aspect_ratio=increase,"
         f"crop={W}:{H}:"
-        f"x='{px}+{px}*sin(2*PI*t/2.5)':"
-        f"y='{py}+{py}*cos(2*PI*t/3.7)',"
+        f"x='{px}+{ax}*sin(2*PI*t/7.0)':"
+        f"y='{py}+{ay}*cos(2*PI*t/11.0)',"
         f"setsar=1"
     )
 
@@ -854,10 +855,10 @@ def _ken_burns_expr(focus: str, seg_label: str,
                     scene_id: int = 1,
                     frames: int = 0) -> tuple[str, str, str]:
     """Select a motion preset based on emotion and scene_id for variety."""
-    # Shorts images: always use aggressive fast presets — slow Ken Burns kills AVD
+    # Shorts images: punchy but not disorienting — max zoom 1.5-1.8
     if os.getenv("VIDEO_FORMAT", "").lower() == "shorts":
-        aggressive = ["fast_push", "impact_zoom", "push_in", "fast_push"]
-        z, x, y = _MOTION_PRESETS[aggressive[scene_id % len(aggressive)]]
+        shorts_presets = ["push_in", "impact_zoom", "reveal_pull", "pan_right"]
+        z, x, y = _MOTION_PRESETS[shorts_presets[scene_id % len(shorts_presets)]]
         return z, x, y
 
     presets = _PRESET_BY_EMOTION.get(motion_emotion, _PRESET_BY_EMOTION["neutral"])

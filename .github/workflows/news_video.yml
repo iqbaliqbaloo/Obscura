@@ -2,9 +2,9 @@ name: Obscura Video Pipeline
 
 on:
   schedule:
-    - cron: '0 5 * * *'    # 05:00 UTC | 10:00 AM PKT | SHORT #1
-    - cron: '0 14 * * *'   # 14:00 UTC |  7:00 PM PKT | SHORT #2
-    - cron: '0 20 * * *'   # 20:00 UTC |  1:00 AM PKT | SHORT #3
+    - cron: '0 6 * * *'    # 06:00 UTC | 11:00 AM PKT | SHORT #1
+    - cron: '0 12 * * *'   # 12:00 UTC |  5:00 PM PKT | SHORT #2
+    - cron: '0 18 * * *'   # 18:00 UTC | 11:00 PM PKT | SHORT #3
     - cron: '0 0 * * *'    # 00:00 UTC |  5:00 AM PKT | BONUS Technology standard
     - cron: '0 3 * * 5'    # 03:00 UTC |  8:00 AM PKT | FRIDAY Islamic Science long
     - cron: '0 * * * *'    # Every hour — comment responder + news monitor
@@ -25,9 +25,9 @@ jobs:
     timeout-minutes: 180
     if: |
       github.event_name == 'workflow_dispatch' ||
-      github.event.schedule == '0 5 * * *'  ||
-      github.event.schedule == '0 14 * * *' ||
-      github.event.schedule == '0 20 * * *'
+      github.event.schedule == '0 6 * * *'  ||
+      github.event.schedule == '0 12 * * *' ||
+      github.event.schedule == '0 18 * * *'
 
     steps:
       - name: Checkout
@@ -223,7 +223,7 @@ jobs:
     if: |
       always() &&
       (
-        github.event.schedule == '0 14 * * *' ||
+        github.event.schedule == '0 12 * * *' ||
         github.event_name == 'workflow_dispatch'
       )
 

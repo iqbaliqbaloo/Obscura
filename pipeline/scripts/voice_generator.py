@@ -36,18 +36,18 @@ _EDGE_VOICE_BACKUP = "ur-IN-SalmanNeural"   # Indian Urdu male — perfect for R
 
 # Rate tuned for Hindi/Roman-Urdu narration rhythm
 _EDGE_RATE: dict[str, str] = {
-    "excited":    "+16%",   # High energy hook — fast, punchy
-    "mysterious": "+0%",    # Slow and deliberate — builds dread
-    "dramatic":   "+10%",   # Payoff reveal — confident
-    "neutral":    "+12%",   # Core facts — clear and steady
+    "excited":    "+25%",   # High energy hook — fast, punchy
+    "mysterious": "+12%",   # Deliberate but not dragging
+    "dramatic":   "+20%",   # Payoff reveal — confident
+    "neutral":    "+20%",   # Core facts — clear and steady
 }
 
 # Pitch for natural Indian male expressiveness
 _EDGE_PITCH: dict[str, str] = {
-    "excited":    "+8Hz",
-    "mysterious": "-4Hz",
-    "dramatic":   "+5Hz",
-    "neutral":    "+2Hz",
+    "excited":    "+10Hz",
+    "mysterious": "-2Hz",
+    "dramatic":   "+6Hz",
+    "neutral":    "+3Hz",
 }
 
 
@@ -170,8 +170,8 @@ def _generate(
     try:
         from xtts_voice import xtts_available, generate as xtts_generate
         if xtts_available():
-            if xtts_generate(text, out):
-                log.info("  TTS: XTTS voice clone ✓")
+            if xtts_generate(text, out, emotion):
+                log.info("  TTS: XTTS voice clone ✓ (emotion=%s)", emotion)
                 return "xtts", {}
     except Exception as exc:
         log.debug("XTTS unavailable: %s", exc)

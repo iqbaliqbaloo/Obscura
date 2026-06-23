@@ -211,31 +211,22 @@ _FACTCHECK_PROMPT = (
 # psychological mechanism that captures attention in the first 1-2 seconds.
 
 _HOOK_FORMULAS = [
-    "IMPOSSIBILITY: State a fact that sounds physically impossible. 'X can Y.' No explanation. Let it hang.",
-    "SPECIFIC NUMBER: Use an exact, surprising number. '[PRECISE NUMBER] [shocking fact].' Specificity = credibility.",
-    "CONTRADICTION: Attack a widely-held belief. 'Everything you know about X is wrong.' Instant curiosity gap.",
-    "SCALE BREAK: Make the scale incomprehensible. Compare it to something familiar but make the comparison impossible to process.",
-    "TENSION GAP: State something happened without explaining why. 'X exists. Nobody knows why.' Open loop psychology.",
-    "FORBIDDEN KNOWLEDGE: Frame the fact as something suppressed. 'They never taught you this in school.'",
-    "STOP SCROLL: Command viewer to stop. 'Stop. This is real.' Direct confrontation forces a pause.",
-    "PERSONAL THREAT: Make it about the viewer's body or life right now. 'Your brain is doing this right now.' Instant relevance.",
-    "IMPOSSIBLE CLAIM: Lead with a claim that sounds like a lie. 'Scientists just broke the laws of physics.' Disbelief = engagement.",
-    "TIMER: Create urgency with a specific time. 'Every 24 hours, this planet does something impossible.' Makes it feel urgent.",
+    "IMPOSSIBILITY: State a fact about the topic that sounds physically impossible. 'X can Y.' No explanation. Let it hang.",
+    "SPECIFIC NUMBER: Use an exact, surprising number about the topic. '[PRECISE NUMBER] [shocking fact about topic].' Specificity = credibility.",
+    "CONTRADICTION: Show the topic defies common belief. '[TOPIC] is not what you think.' Instant curiosity gap.",
+    "SCALE BREAK: Make the topic's scale incomprehensible. Compare it to something familiar but make the comparison impossible to process.",
+    "TENSION GAP: State what the topic does without explaining why. '[TOPIC] exists. Nobody knows why.' Open loop psychology.",
+    "IMPOSSIBLE CLAIM: Lead with a topic claim that sounds like a lie. 'Scientists just discovered [TOPIC] breaks physics.' Disbelief = engagement.",
+    "TIMER: Create urgency with a specific time related to the topic. 'Every 24 hours, [TOPIC] does something impossible.' Makes it feel urgent.",
 ]
 
-# Shorts-only hook formulas — more extreme than the standard set.
-# These are tuned to the 2-second scroll window where a viewer decides to stay or leave.
+# Shorts-only hook formulas — topic-specific, tuned for the 2-second scroll window.
 _SHORTS_HOOK_FORMULAS = [
-    "PERSONAL NOW: About the viewer's body RIGHT NOW. 'Your brain is lying to you right now.' First word = 'Your' or 'You'. Present tense. No explanation.",
-    "SINGLE IMPOSSIBLE WORD OPENER: Start with one word that creates instant dissonance. 'Dead. Yet still moving.' Short pause after word one.",
-    "SILENT THREAT: Make it feel like critical survival info is being withheld. 'This is slowly killing you.' No qualifier, no softening.",
-    "AGENCY SECRET: Frame it as information a powerful entity hid. 'NASA never told you this.' or 'Schools hid this for 100 years.'",
-    "SPECIES SHOCK: Challenge human identity. 'You are 90% not human.' or 'Humans are the only species that...' — end on something disturbing.",
-    "COUNTDOWN URGENCY: Attach a real time interval to something impossible. 'Every 2 seconds your body does something impossible.' Forces the viewer to count.",
-    "WORLD LIE: Challenge one fundamental belief everyone holds. 'The sky is not actually blue.' State it as fact, zero hedging.",
-    "SCALE CRUSH: Something so extreme it breaks comprehension. 'A teaspoon of this weighs a billion tonnes.' Specificity = credibility.",
-    "DIRECT STOP: Force the scroll to stop. 'Wait.' Then the fact. One word command creates a micro-pause that curiosity fills.",
-    "IDENTITY SHATTER: Attack who the viewer thinks they are. 'You share 60% of your DNA with a banana.' Make it personal, make it absurd.",
+    "SINGLE IMPOSSIBLE WORD OPENER: Start with the topic's most shocking attribute as one word. 'Dead. Yet still moving.' First word = the topic or a shocking fact about it.",
+    "COUNTDOWN URGENCY: Attach a real time interval to the topic. 'Every 2 seconds [TOPIC] does something impossible.' Forces the viewer to count.",
+    "WORLD LIE: Challenge one belief about the topic. '[TOPIC] is not what you think.' State it as fact, zero hedging. Topic must be in first 3 words.",
+    "SCALE CRUSH: Make the topic's scale incomprehensible. 'A teaspoon of [TOPIC] weighs a billion tonnes.' Specificity = credibility.",
+    "DIRECT STOP: Force the scroll to stop with the topic fact. '[TOPIC]. This is real.' Topic must be in the first 3 words.",
 ]
 
 # Shorts-specific boost — injected only for Shorts format
@@ -317,24 +308,6 @@ WRITING RULES FOR LONG-FORM:
 14. ZERO filler connectors: "So," / "Basically," / "In other words," / "To summarize," / "Essentially,"
 15. Write as if narrating a high-budget documentary — authoritative, urgent, surprising at every turn.
 """
-
-# Director Brain — global story state injected into every Groq system prompt.
-# Zero extra API calls: context is appended to the existing system prompt.
-# Ensures scripts have a globally coherent suspense arc and emotional journey
-# rather than per-segment decisions made without full-video awareness.
-_DIRECTOR_CONTEXT = {
-    "story_role_sequence": ["hook", "rising_action", "peak", "reveal", "resolution"],
-    "suspense_curve":      [0.75, 0.85, 1.0, 0.50, 0.20],
-    "emotion_curve":       ["excited", "mysterious", "dramatic", "excited", "neutral"],
-    "director_notes": (
-        "Write each segment with awareness of its position in the full arc. "
-        "HOOK must feel incomplete — create an open loop the viewer MUST close. "
-        "TENSION escalates the urgency without answering the hook. "
-        "CORE delivers the densest information at peak suspense. "
-        "PAYOFF releases tension — the viewer feels satisfied and amazed. "
-        "CLOSE is calm and invites return — never high-energy at this stage."
-    ),
-}
 
 # Category-specific seed tags. Injected into the tags instruction so the LLM
 # generates relevant long-tail phrases instead of generic ones.
@@ -465,10 +438,7 @@ TITLE RULES — YouTube Shorts optimised (follow ALL rules every time):
   BAD:  "Hairaan Karne Wale DNA Facts"                              ← vague, no emoji
 
 Writing style: authoritative, fast-paced, conversational.
-Respond ONLY with valid JSON. No text outside the JSON.
-
-DIRECTOR BRIEF:
-{director_brief}"""
+Respond ONLY with valid JSON. No text outside the JSON."""
 
 _USER_TMPL = """Write a {video_label} "Obscura" script for this EXACT topic:
 
@@ -783,21 +753,20 @@ def generate_script(topic: dict, logs_dir: Path | None = None) -> dict:
     close_rule  = _CLOSE_RULE_STANDARD if is_longform else variant["close_rule"]
 
     system_prompt = _SYSTEM_TMPL.format(
-        description    = variant["description"],
-        hook_rule      = augmented_hook_rule,
-        tension_rule   = variant["tension_rule"],
-        core_rule      = variant["core_rule"],
-        payoff_rule    = variant["payoff_rule"],
-        close_rule     = close_rule,
-        word_target    = fmt_profile["word_target"],
-        duration_hint  = fmt_profile["duration_hint"],
-        core_depth     = fmt_profile["core_depth"],
-        hook_time      = fmt_timing["hook_time"],
-        tension_time   = fmt_timing["tension_time"],
-        core_time      = fmt_timing["core_time"],
-        payoff_time    = fmt_timing["payoff_time"],
-        close_time     = fmt_timing["close_time"],
-        director_brief = json.dumps(_DIRECTOR_CONTEXT, indent=2),
+        description   = variant["description"],
+        hook_rule     = augmented_hook_rule,
+        tension_rule  = variant["tension_rule"],
+        core_rule     = variant["core_rule"],
+        payoff_rule   = variant["payoff_rule"],
+        close_rule    = close_rule,
+        word_target   = fmt_profile["word_target"],
+        duration_hint = fmt_profile["duration_hint"],
+        core_depth    = fmt_profile["core_depth"],
+        hook_time     = fmt_timing["hook_time"],
+        tension_time  = fmt_timing["tension_time"],
+        core_time     = fmt_timing["core_time"],
+        payoff_time   = fmt_timing["payoff_time"],
+        close_time    = fmt_timing["close_time"],
     ) + _load_viewer_note() + (_SHORTS_SYSTEM_BOOST if not is_longform else _STANDARD_SYSTEM_BOOST)
 
     # ── Inject banned phrases from recent videos to prevent repetition ────────
@@ -907,6 +876,36 @@ def generate_script(topic: dict, logs_dir: Path | None = None) -> dict:
                     "%s segment %s is English (%d Urdu markers in %d words) — "
                     "rejecting whole script (attempt %d).",
                     source, seg.get("label", "?"), seg_hits, len(seg_words), attempt + 1,
+                )
+                return None
+
+        # ── Hook must reference the video topic ──────────────────────────────
+        hook_seg = next((s for s in script.get("segments", []) if s.get("label") == "HOOK"), None)
+        if hook_seg:
+            hook_lower = hook_seg.get("text", "").lower()
+            _stops = {"aur", "hai", "hain", "ka", "ki", "ke", "ne", "ko", "se",
+                      "bhi", "the", "and", "for", "with", "this", "that"}
+            topic_kws = [w.strip(".,!?[]()#|").lower()
+                         for w in title_str.split() if len(w) > 3 and w.lower() not in _stops][:4]
+            if topic_kws and not any(kw in hook_lower for kw in topic_kws):
+                log.warning(
+                    "%s HOOK missing topic keyword (attempt %d) — "
+                    "title='%s' hook='%s'",
+                    source, attempt + 1, title_str[:50], hook_seg["text"][:60],
+                )
+                return None
+
+        # ── Title must be in Roman Urdu (not all-English) ────────────────────
+        title_in_meta = script.get("metadata", {}).get("title", "")
+        if title_in_meta:
+            t_words = title_in_meta.lower().split()
+            if len(t_words) > 3 and not any(
+                w.strip(".,!?[]()") in _URDU_MARKERS for w in t_words
+            ):
+                log.warning(
+                    "%s title appears to be English (0 Urdu markers) — "
+                    "rejecting (attempt %d): '%s'",
+                    source, attempt + 1, title_in_meta[:60],
                 )
                 return None
 

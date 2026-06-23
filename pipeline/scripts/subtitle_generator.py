@@ -137,8 +137,8 @@ def generate_ass_subtitles(timeline: dict, out_dir: Path) -> Path:
     font_size  = (84 if is_shorts else 42) + _auto_font_adjust()
     margin_v   = 0  if is_shorts else 80
     align_tag  = r"\an5" if is_shorts else r"\an2"
-    fade_tag   = r"\fad(60,60)"  if is_shorts else r"\fad(150,150)"
-    chunk_size = 2 if is_shorts else 4
+    fade_tag   = r"\fad(100,80)" if is_shorts else r"\fad(150,120)"
+    chunk_size = 3 if is_shorts else 5
     secondary  = "&H0000FFFF"   # yellow karaoke highlight
 
     header = "\n".join([
