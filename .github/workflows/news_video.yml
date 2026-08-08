@@ -1,449 +1,449 @@
-name: Obscura Video Pipeline
+# name: Obscura Video Pipeline
 
-on:
-  schedule:
-    - cron: '0 6 * * *'    # 06:00 UTC | 11:00 AM PKT | SHORT #1
-    - cron: '0 12 * * *'   # 12:00 UTC |  5:00 PM PKT | SHORT #2
-    - cron: '0 18 * * *'   # 18:00 UTC | 11:00 PM PKT | SHORT #3
-    - cron: '0 0 * * *'    # 00:00 UTC |  5:00 AM PKT | BONUS Technology standard
-    - cron: '0 3 * * 5'    # 03:00 UTC |  8:00 AM PKT | FRIDAY Islamic Science long
-    - cron: '0 * * * *'    # Every hour — comment responder + news monitor
-  workflow_dispatch:
-    inputs:
-      intent_override:
-        description: 'Force category (MYSTERY/PSYCHOLOGY/SCIENCE/TECHNOLOGY/ISLAMIC_SCIENCE/HISTORY)'
-        required: false
-        default: ''
-      video_format:
-        description: 'Video format: shorts | standard | long'
-        required: false
-        default: 'shorts'
+# on:
+#   schedule:
+#     - cron: '0 6 * * *'    # 06:00 UTC | 11:00 AM PKT | SHORT #1
+#     - cron: '0 12 * * *'   # 12:00 UTC |  5:00 PM PKT | SHORT #2
+#     - cron: '0 18 * * *'   # 18:00 UTC | 11:00 PM PKT | SHORT #3
+#     - cron: '0 0 * * *'    # 00:00 UTC |  5:00 AM PKT | BONUS Technology standard
+#     - cron: '0 3 * * 5'    # 03:00 UTC |  8:00 AM PKT | FRIDAY Islamic Science long
+#     - cron: '0 * * * *'    # Every hour — comment responder + news monitor
+#   workflow_dispatch:
+#     inputs:
+#       intent_override:
+#         description: 'Force category (MYSTERY/PSYCHOLOGY/SCIENCE/TECHNOLOGY/ISLAMIC_SCIENCE/HISTORY)'
+#         required: false
+#         default: ''
+#       video_format:
+#         description: 'Video format: shorts | standard | long'
+#         required: false
+#         default: 'shorts'
 
-jobs:
-  news-video:
-    runs-on: ubuntu-latest
-    timeout-minutes: 180
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      github.event.schedule == '0 6 * * *'  ||
-      github.event.schedule == '0 12 * * *' ||
-      github.event.schedule == '0 18 * * *'
+# jobs:
+#   news-video:
+#     runs-on: ubuntu-latest
+#     timeout-minutes: 180
+#     if: |
+#       github.event_name == 'workflow_dispatch' ||
+#       github.event.schedule == '0 6 * * *'  ||
+#       github.event.schedule == '0 12 * * *' ||
+#       github.event.schedule == '0 18 * * *'
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v4
+#         with:
+#           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
+#       - name: Setup Python 3.11
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.11'
+#           cache: 'pip'
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg fonts-dejavu fonts-liberation libass-dev
-          ffmpeg -version | head -1
+#       - name: Install system dependencies
+#         run: |
+#           sudo apt-get update -qq
+#           sudo apt-get install -y ffmpeg fonts-dejavu fonts-liberation libass-dev
+#           ffmpeg -version | head -1
 
-      - name: Cache XTTS v2 model
-        uses: actions/cache@v4
-        with:
-          path: ~/.local/share/tts
-          key: xtts-v2-model-v1
+#       - name: Cache XTTS v2 model
+#         uses: actions/cache@v4
+#         with:
+#           path: ~/.local/share/tts
+#           key: xtts-v2-model-v1
 
-      - name: Install Python dependencies
-        run: pip install -r requirements.txt
+#       - name: Install Python dependencies
+#         run: pip install -r requirements.txt
 
-      - name: Create runtime directories
-        run: |
-          mkdir -p pipeline/temp/voice     \
-                   pipeline/temp/visuals   \
-                   pipeline/temp/subtitles \
-                   pipeline/temp/scenes    \
-                   pipeline/output         \
-                   pipeline/logs
+#       - name: Create runtime directories
+#         run: |
+#           mkdir -p pipeline/temp/voice     \
+#                    pipeline/temp/visuals   \
+#                    pipeline/temp/subtitles \
+#                    pipeline/temp/scenes    \
+#                    pipeline/output         \
+#                    pipeline/logs
 
-      - name: Resolve video format
-        id: fmt
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "format=${{ github.event.inputs.video_format || 'shorts' }}" >> $GITHUB_OUTPUT
-          else
-            echo "format=shorts" >> $GITHUB_OUTPUT
-          fi
+#       - name: Resolve video format
+#         id: fmt
+#         run: |
+#           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+#             echo "format=${{ github.event.inputs.video_format || 'shorts' }}" >> $GITHUB_OUTPUT
+#           else
+#             echo "format=shorts" >> $GITHUB_OUTPUT
+#           fi
 
-      - name: Run Video Pipeline
-        env:
-          COQUI_TOS_AGREED:          "1"
-          VIDEO_FORMAT:              ${{ steps.fmt.outputs.format }}
-          INTENT_OVERRIDE:           ${{ github.event.inputs.intent_override }}
-          GROQ_API_KEY_1:            ${{ secrets.GROQ_API_KEY_1 }}
-          GROQ_API_KEY_2:            ${{ secrets.GROQ_API_KEY_2 }}
-          GROQ_API_KEY_3:            ${{ secrets.GROQ_API_KEY_3 }}
-          GROQ_API_KEY_4:            ${{ secrets.GROQ_API_KEY_4 }}
-          GEMINI_API_KEY:            ${{ secrets.GEMINI_API_KEY }}
-          ELEVENLABS_API_KEY:        ${{ secrets.ELEVENLABS_API_KEY }}
-          ELEVENLABS_API_KEY_2:      ${{ secrets.ELEVENLABS_API_KEY_2 }}
-          ELEVENLABS_API_KEY_3:      ${{ secrets.ELEVENLABS_API_KEY_3 }}
-          ELEVENLABS_API_KEY_4:      ${{ secrets.ELEVENLABS_API_KEY_4 }}
-          PEXELS_API_KEY:            ${{ secrets.PEXELS_API_KEY }}
-          PIXABAY_API_KEY:           ${{ secrets.PIXABAY_API_KEY }}
-          YOUTUBE_API_KEY:           ${{ secrets.YOUTUBE_API_KEY }}
-          YOUTUBE_CLIENT_ID:         ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET:     ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_REFRESH_TOKEN:     ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          TELEGRAM_BOT_TOKEN:        ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHANNEL_ID:       ${{ secrets.TELEGRAM_CHANNEL_ID }}
-          TIKTOK_ACCESS_TOKEN:       ${{ secrets.TIKTOK_ACCESS_TOKEN }}
-          MAKECOM_FACEBOOK_WEBHOOK:  ${{ secrets.MAKECOM_FACEBOOK_WEBHOOK }}
-          MAKECOM_INSTAGRAM_WEBHOOK: ${{ secrets.MAKECOM_INSTAGRAM_WEBHOOK }}
-          CLOUDINARY_CLOUD_NAME:     ${{ secrets.CLOUDINARY_CLOUD_NAME }}
-          CLOUDINARY_API_KEY:        ${{ secrets.CLOUDINARY_API_KEY }}
-          CLOUDINARY_API_SECRET:     ${{ secrets.CLOUDINARY_API_SECRET }}
-          GMAIL_SENDER:              ${{ secrets.GMAIL_SENDER }}
-          GMAIL_APP_PASSWORD:        ${{ secrets.GMAIL_APP_PASSWORD }}
-        run: |
-          echo "=== Obscura Video Pipeline — format=$VIDEO_FORMAT ==="
-          python pipeline/main.py
-          echo ""
-          echo "=== Output files ==="
-          ls -lh pipeline/output/ 2>/dev/null || echo "(no output files)"
+#       - name: Run Video Pipeline
+#         env:
+#           COQUI_TOS_AGREED:          "1"
+#           VIDEO_FORMAT:              ${{ steps.fmt.outputs.format }}
+#           INTENT_OVERRIDE:           ${{ github.event.inputs.intent_override }}
+#           GROQ_API_KEY_1:            ${{ secrets.GROQ_API_KEY_1 }}
+#           GROQ_API_KEY_2:            ${{ secrets.GROQ_API_KEY_2 }}
+#           GROQ_API_KEY_3:            ${{ secrets.GROQ_API_KEY_3 }}
+#           GROQ_API_KEY_4:            ${{ secrets.GROQ_API_KEY_4 }}
+#           GEMINI_API_KEY:            ${{ secrets.GEMINI_API_KEY }}
+#           ELEVENLABS_API_KEY:        ${{ secrets.ELEVENLABS_API_KEY }}
+#           ELEVENLABS_API_KEY_2:      ${{ secrets.ELEVENLABS_API_KEY_2 }}
+#           ELEVENLABS_API_KEY_3:      ${{ secrets.ELEVENLABS_API_KEY_3 }}
+#           ELEVENLABS_API_KEY_4:      ${{ secrets.ELEVENLABS_API_KEY_4 }}
+#           PEXELS_API_KEY:            ${{ secrets.PEXELS_API_KEY }}
+#           PIXABAY_API_KEY:           ${{ secrets.PIXABAY_API_KEY }}
+#           YOUTUBE_API_KEY:           ${{ secrets.YOUTUBE_API_KEY }}
+#           YOUTUBE_CLIENT_ID:         ${{ secrets.YOUTUBE_CLIENT_ID }}
+#           YOUTUBE_CLIENT_SECRET:     ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+#           YOUTUBE_REFRESH_TOKEN:     ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+#           TELEGRAM_BOT_TOKEN:        ${{ secrets.TELEGRAM_BOT_TOKEN }}
+#           TELEGRAM_CHANNEL_ID:       ${{ secrets.TELEGRAM_CHANNEL_ID }}
+#           TIKTOK_ACCESS_TOKEN:       ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+#           MAKECOM_FACEBOOK_WEBHOOK:  ${{ secrets.MAKECOM_FACEBOOK_WEBHOOK }}
+#           MAKECOM_INSTAGRAM_WEBHOOK: ${{ secrets.MAKECOM_INSTAGRAM_WEBHOOK }}
+#           CLOUDINARY_CLOUD_NAME:     ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+#           CLOUDINARY_API_KEY:        ${{ secrets.CLOUDINARY_API_KEY }}
+#           CLOUDINARY_API_SECRET:     ${{ secrets.CLOUDINARY_API_SECRET }}
+#           GMAIL_SENDER:              ${{ secrets.GMAIL_SENDER }}
+#           GMAIL_APP_PASSWORD:        ${{ secrets.GMAIL_APP_PASSWORD }}
+#         run: |
+#           echo "=== Obscura Video Pipeline — format=$VIDEO_FORMAT ==="
+#           python pipeline/main.py
+#           echo ""
+#           echo "=== Output files ==="
+#           ls -lh pipeline/output/ 2>/dev/null || echo "(no output files)"
 
-      - name: Save logs to repository
-        if: always()
-        continue-on-error: true
-        run: |
-          git config user.name  "Obscura Bot"
-          git config user.email "bot@obscura.ai"
-          git add pipeline/logs/ 2>/dev/null || true
-          git diff --staged --quiet || \
-            git commit -m "bot: update pipeline logs [skip ci]"
-          git push 2>/dev/null || true
+#       - name: Save logs to repository
+#         if: always()
+#         continue-on-error: true
+#         run: |
+#           git config user.name  "Obscura Bot"
+#           git config user.email "bot@obscura.ai"
+#           git add pipeline/logs/ 2>/dev/null || true
+#           git diff --staged --quiet || \
+#             git commit -m "bot: update pipeline logs [skip ci]"
+#           git push 2>/dev/null || true
 
-  news-monitor:
-    runs-on: ubuntu-latest
-    if: always()
+#   news-monitor:
+#     runs-on: ubuntu-latest
+#     if: always()
 
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: pip install requests
+#     steps:
+#       - uses: actions/checkout@v4
+#         with:
+#           token: ${{ secrets.GITHUB_TOKEN }}
+#       - uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.11'
+#       - run: pip install requests
 
-      - name: Check trending news
-        id: monitor
-        continue-on-error: true
-        env:
-          GROQ_API_KEY_1: ${{ secrets.GROQ_API_KEY_1 }}
-          GROQ_API_KEY_2: ${{ secrets.GROQ_API_KEY_2 }}
-        run: |
-          mkdir -p pipeline/logs
-          python -c "
-          import sys, json
-          from pathlib import Path
-          sys.path.insert(0, 'pipeline/scripts')
-          from news_monitor import run_news_monitor
-          triggered = run_news_monitor()
-          print('Triggered:', triggered)
-          tp = Path('pipeline/logs/news_trigger.json')
-          if tp.exists():
-              d = json.loads(tp.read_text())
-              score = d.get('topic', {}).get('news_score', 0)
-              used  = d.get('used', False)
-              import os; out = os.environ.get('GITHUB_OUTPUT','')
-              with open(out, 'a') as f:
-                  f.write(f'trigger_score={score}\n')
-                  f.write(f'trigger_used={used}\n')
-          "
+#       - name: Check trending news
+#         id: monitor
+#         continue-on-error: true
+#         env:
+#           GROQ_API_KEY_1: ${{ secrets.GROQ_API_KEY_1 }}
+#           GROQ_API_KEY_2: ${{ secrets.GROQ_API_KEY_2 }}
+#         run: |
+#           mkdir -p pipeline/logs
+#           python -c "
+#           import sys, json
+#           from pathlib import Path
+#           sys.path.insert(0, 'pipeline/scripts')
+#           from news_monitor import run_news_monitor
+#           triggered = run_news_monitor()
+#           print('Triggered:', triggered)
+#           tp = Path('pipeline/logs/news_trigger.json')
+#           if tp.exists():
+#               d = json.loads(tp.read_text())
+#               score = d.get('topic', {}).get('news_score', 0)
+#               used  = d.get('used', False)
+#               import os; out = os.environ.get('GITHUB_OUTPUT','')
+#               with open(out, 'a') as f:
+#                   f.write(f'trigger_score={score}\n')
+#                   f.write(f'trigger_used={used}\n')
+#           "
 
-      - name: Save news trigger and queue
-        continue-on-error: true
-        run: |
-          git config user.name  "Obscura Bot"
-          git config user.email "bot@obscura.ai"
-          git add pipeline/logs/news_trigger.json \
-                  pipeline/logs/news_queue.json 2>/dev/null || true
-          git diff --staged --quiet || \
-            git commit -m "bot: news trigger [skip ci]"
-          git push 2>/dev/null || true
+#       - name: Save news trigger and queue
+#         continue-on-error: true
+#         run: |
+#           git config user.name  "Obscura Bot"
+#           git config user.email "bot@obscura.ai"
+#           git add pipeline/logs/news_trigger.json \
+#                   pipeline/logs/news_queue.json 2>/dev/null || true
+#           git diff --staged --quiet || \
+#             git commit -m "bot: news trigger [skip ci]"
+#           git push 2>/dev/null || true
 
-  comment-responder:
-    runs-on: ubuntu-latest
-    if: always()
+#   comment-responder:
+#     runs-on: ubuntu-latest
+#     if: always()
 
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: pip install requests
+#     steps:
+#       - uses: actions/checkout@v4
+#         with:
+#           token: ${{ secrets.GITHUB_TOKEN }}
+#       - uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.11'
+#       - run: pip install requests
 
-      - name: Reply to comments
-        continue-on-error: true
-        env:
-          GROQ_API_KEY_1:        ${{ secrets.GROQ_API_KEY_1 }}
-          GROQ_API_KEY_2:        ${{ secrets.GROQ_API_KEY_2 }}
-          GROQ_API_KEY_3:        ${{ secrets.GROQ_API_KEY_3 }}
-          GROQ_API_KEY_4:        ${{ secrets.GROQ_API_KEY_4 }}
-          YOUTUBE_CLIENT_ID:     ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-        run: |
-          mkdir -p pipeline/logs
-          python -c "
-          import sys, logging
-          logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
-          sys.path.insert(0, 'pipeline/scripts')
-          from comment_responder import run_comment_responder
-          run_comment_responder()
-          "
+#       - name: Reply to comments
+#         continue-on-error: true
+#         env:
+#           GROQ_API_KEY_1:        ${{ secrets.GROQ_API_KEY_1 }}
+#           GROQ_API_KEY_2:        ${{ secrets.GROQ_API_KEY_2 }}
+#           GROQ_API_KEY_3:        ${{ secrets.GROQ_API_KEY_3 }}
+#           GROQ_API_KEY_4:        ${{ secrets.GROQ_API_KEY_4 }}
+#           YOUTUBE_CLIENT_ID:     ${{ secrets.YOUTUBE_CLIENT_ID }}
+#           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+#           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+#         run: |
+#           mkdir -p pipeline/logs
+#           python -c "
+#           import sys, logging
+#           logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+#           sys.path.insert(0, 'pipeline/scripts')
+#           from comment_responder import run_comment_responder
+#           run_comment_responder()
+#           "
 
-      - name: Save replied comments log and auto-fixes
-        continue-on-error: true
-        run: |
-          git config user.name  "Obscura Bot"
-          git config user.email "bot@obscura.ai"
-          git add pipeline/logs/replied_comments.json \
-                  pipeline/logs/auto_fixes.json \
-                  pipeline/logs/script_feedback.json 2>/dev/null || true
-          git diff --staged --quiet || \
-            git commit -m "bot: update comments + auto-fixes [skip ci]"
-          git push 2>/dev/null || true
+#       - name: Save replied comments log and auto-fixes
+#         continue-on-error: true
+#         run: |
+#           git config user.name  "Obscura Bot"
+#           git config user.email "bot@obscura.ai"
+#           git add pipeline/logs/replied_comments.json \
+#                   pipeline/logs/auto_fixes.json \
+#                   pipeline/logs/script_feedback.json 2>/dev/null || true
+#           git diff --staged --quiet || \
+#             git commit -m "bot: update comments + auto-fixes [skip ci]"
+#           git push 2>/dev/null || true
 
-  analytics-refresh:
-    runs-on: ubuntu-latest
-    needs: news-video
-    if: |
-      always() &&
-      (
-        github.event.schedule == '0 12 * * *' ||
-        github.event_name == 'workflow_dispatch'
-      )
+#   analytics-refresh:
+#     runs-on: ubuntu-latest
+#     needs: news-video
+#     if: |
+#       always() &&
+#       (
+#         github.event.schedule == '0 12 * * *' ||
+#         github.event_name == 'workflow_dispatch'
+#       )
 
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: pip install requests
+#     steps:
+#       - uses: actions/checkout@v4
+#         with:
+#           token: ${{ secrets.GITHUB_TOKEN }}
+#       - uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.11'
+#       - run: pip install requests
 
-      - name: Fetch YouTube Analytics
-        continue-on-error: true
-        env:
-          GROQ_API_KEY_1:        ${{ secrets.GROQ_API_KEY_1 }}
-          YOUTUBE_CLIENT_ID:     ${{ secrets.YOUTUBE_CLIENT_ID_READ }}
-          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET_READ }}
-          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN_READ }}
-        run: |
-          python -c "
-          import sys
-          from pathlib import Path
-          sys.path.insert(0, 'pipeline/scripts')
-          from news_analytics import fetch_analytics_feedback, fetch_peak_hours, update_velocity_queue, apply_adaptive_learning, auto_improve_low_ctr
-          logs = Path('pipeline/logs')
-          hints = fetch_analytics_feedback(logs)
-          print('Feedback hints:', hints)
-          if hints.get('retention_signal'):
-              apply_adaptive_learning(hints, logs)
-          fetch_peak_hours(logs)
-          update_velocity_queue(logs)
-          auto_improve_low_ctr(logs)
-          "
+#       - name: Fetch YouTube Analytics
+#         continue-on-error: true
+#         env:
+#           GROQ_API_KEY_1:        ${{ secrets.GROQ_API_KEY_1 }}
+#           YOUTUBE_CLIENT_ID:     ${{ secrets.YOUTUBE_CLIENT_ID_READ }}
+#           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET_READ }}
+#           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN_READ }}
+#         run: |
+#           python -c "
+#           import sys
+#           from pathlib import Path
+#           sys.path.insert(0, 'pipeline/scripts')
+#           from news_analytics import fetch_analytics_feedback, fetch_peak_hours, update_velocity_queue, apply_adaptive_learning, auto_improve_low_ctr
+#           logs = Path('pipeline/logs')
+#           hints = fetch_analytics_feedback(logs)
+#           print('Feedback hints:', hints)
+#           if hints.get('retention_signal'):
+#               apply_adaptive_learning(hints, logs)
+#           fetch_peak_hours(logs)
+#           update_velocity_queue(logs)
+#           auto_improve_low_ctr(logs)
+#           "
 
-      - name: Save analytics data
-        continue-on-error: true
-        run: |
-          git config user.name  "Obscura Bot"
-          git config user.email "bot@obscura.ai"
-          git add pipeline/logs/analytics_data.json \
-                  pipeline/logs/video_results.json \
-                  pipeline/logs/adaptive_params.json 2>/dev/null || true
-          git diff --staged --quiet || \
-            git commit -m "bot: update analytics data [skip ci]"
-          git push 2>/dev/null || true
+#       - name: Save analytics data
+#         continue-on-error: true
+#         run: |
+#           git config user.name  "Obscura Bot"
+#           git config user.email "bot@obscura.ai"
+#           git add pipeline/logs/analytics_data.json \
+#                   pipeline/logs/video_results.json \
+#                   pipeline/logs/adaptive_params.json 2>/dev/null || true
+#           git diff --staged --quiet || \
+#             git commit -m "bot: update analytics data [skip ci]"
+#           git push 2>/dev/null || true
 
-  bonus-video:
-    runs-on: ubuntu-latest
-    timeout-minutes: 180
-    if: github.event.schedule == '0 0 * * *'
+#   bonus-video:
+#     runs-on: ubuntu-latest
+#     timeout-minutes: 180
+#     if: github.event.schedule == '0 0 * * *'
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v4
+#         with:
+#           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
+#       - name: Setup Python 3.11
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.11'
+#           cache: 'pip'
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg fonts-dejavu fonts-liberation libass-dev
+#       - name: Install system dependencies
+#         run: |
+#           sudo apt-get update -qq
+#           sudo apt-get install -y ffmpeg fonts-dejavu fonts-liberation libass-dev
 
-      - name: Cache XTTS v2 model
-        uses: actions/cache@v4
-        with:
-          path: ~/.local/share/tts
-          key: xtts-v2-model-v1
+#       - name: Cache XTTS v2 model
+#         uses: actions/cache@v4
+#         with:
+#           path: ~/.local/share/tts
+#           key: xtts-v2-model-v1
 
-      - name: Install Python dependencies
-        run: pip install -r requirements.txt
+#       - name: Install Python dependencies
+#         run: pip install -r requirements.txt
 
-      - name: Create runtime directories
-        run: |
-          mkdir -p pipeline/temp/voice     \
-                   pipeline/temp/visuals   \
-                   pipeline/temp/subtitles \
-                   pipeline/temp/scenes    \
-                   pipeline/output         \
-                   pipeline/logs
+#       - name: Create runtime directories
+#         run: |
+#           mkdir -p pipeline/temp/voice     \
+#                    pipeline/temp/visuals   \
+#                    pipeline/temp/subtitles \
+#                    pipeline/temp/scenes    \
+#                    pipeline/output         \
+#                    pipeline/logs
 
-      - name: Run Technology Bonus Video Pipeline
-        env:
-          COQUI_TOS_AGREED:          "1"
-          VIDEO_FORMAT:              standard
-          INTENT_OVERRIDE:           TECHNOLOGY
-          TOPIC_SOURCE:              rss
-          GROQ_API_KEY_1:            ${{ secrets.GROQ_API_KEY_1 }}
-          GROQ_API_KEY_2:            ${{ secrets.GROQ_API_KEY_2 }}
-          GROQ_API_KEY_3:            ${{ secrets.GROQ_API_KEY_3 }}
-          GROQ_API_KEY_4:            ${{ secrets.GROQ_API_KEY_4 }}
-          GEMINI_API_KEY:            ${{ secrets.GEMINI_API_KEY }}
-          ELEVENLABS_API_KEY:        ${{ secrets.ELEVENLABS_API_KEY }}
-          ELEVENLABS_API_KEY_2:      ${{ secrets.ELEVENLABS_API_KEY_2 }}
-          ELEVENLABS_API_KEY_3:      ${{ secrets.ELEVENLABS_API_KEY_3 }}
-          ELEVENLABS_API_KEY_4:      ${{ secrets.ELEVENLABS_API_KEY_4 }}
-          PEXELS_API_KEY:            ${{ secrets.PEXELS_API_KEY }}
-          PIXABAY_API_KEY:           ${{ secrets.PIXABAY_API_KEY }}
-          YOUTUBE_API_KEY:           ${{ secrets.YOUTUBE_API_KEY }}
-          YOUTUBE_CLIENT_ID:         ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET:     ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_REFRESH_TOKEN:     ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          TELEGRAM_BOT_TOKEN:        ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHANNEL_ID:       ${{ secrets.TELEGRAM_CHANNEL_ID }}
-          TIKTOK_ACCESS_TOKEN:       ${{ secrets.TIKTOK_ACCESS_TOKEN }}
-          MAKECOM_FACEBOOK_WEBHOOK:  ${{ secrets.MAKECOM_FACEBOOK_WEBHOOK }}
-          MAKECOM_INSTAGRAM_WEBHOOK: ${{ secrets.MAKECOM_INSTAGRAM_WEBHOOK }}
-          CLOUDINARY_CLOUD_NAME:     ${{ secrets.CLOUDINARY_CLOUD_NAME }}
-          CLOUDINARY_API_KEY:        ${{ secrets.CLOUDINARY_API_KEY }}
-          CLOUDINARY_API_SECRET:     ${{ secrets.CLOUDINARY_API_SECRET }}
-          GMAIL_SENDER:              ${{ secrets.GMAIL_SENDER }}
-          GMAIL_APP_PASSWORD:        ${{ secrets.GMAIL_APP_PASSWORD }}
-        run: |
-          echo "=== Obscura Technology Bonus — 00:00 UTC / 5 AM PKT ==="
-          python pipeline/main.py
-          echo ""
-          echo "=== Output files ==="
-          ls -lh pipeline/output/ 2>/dev/null || echo "(no output files)"
+#       - name: Run Technology Bonus Video Pipeline
+#         env:
+#           COQUI_TOS_AGREED:          "1"
+#           VIDEO_FORMAT:              standard
+#           INTENT_OVERRIDE:           TECHNOLOGY
+#           TOPIC_SOURCE:              rss
+#           GROQ_API_KEY_1:            ${{ secrets.GROQ_API_KEY_1 }}
+#           GROQ_API_KEY_2:            ${{ secrets.GROQ_API_KEY_2 }}
+#           GROQ_API_KEY_3:            ${{ secrets.GROQ_API_KEY_3 }}
+#           GROQ_API_KEY_4:            ${{ secrets.GROQ_API_KEY_4 }}
+#           GEMINI_API_KEY:            ${{ secrets.GEMINI_API_KEY }}
+#           ELEVENLABS_API_KEY:        ${{ secrets.ELEVENLABS_API_KEY }}
+#           ELEVENLABS_API_KEY_2:      ${{ secrets.ELEVENLABS_API_KEY_2 }}
+#           ELEVENLABS_API_KEY_3:      ${{ secrets.ELEVENLABS_API_KEY_3 }}
+#           ELEVENLABS_API_KEY_4:      ${{ secrets.ELEVENLABS_API_KEY_4 }}
+#           PEXELS_API_KEY:            ${{ secrets.PEXELS_API_KEY }}
+#           PIXABAY_API_KEY:           ${{ secrets.PIXABAY_API_KEY }}
+#           YOUTUBE_API_KEY:           ${{ secrets.YOUTUBE_API_KEY }}
+#           YOUTUBE_CLIENT_ID:         ${{ secrets.YOUTUBE_CLIENT_ID }}
+#           YOUTUBE_CLIENT_SECRET:     ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+#           YOUTUBE_REFRESH_TOKEN:     ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+#           TELEGRAM_BOT_TOKEN:        ${{ secrets.TELEGRAM_BOT_TOKEN }}
+#           TELEGRAM_CHANNEL_ID:       ${{ secrets.TELEGRAM_CHANNEL_ID }}
+#           TIKTOK_ACCESS_TOKEN:       ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+#           MAKECOM_FACEBOOK_WEBHOOK:  ${{ secrets.MAKECOM_FACEBOOK_WEBHOOK }}
+#           MAKECOM_INSTAGRAM_WEBHOOK: ${{ secrets.MAKECOM_INSTAGRAM_WEBHOOK }}
+#           CLOUDINARY_CLOUD_NAME:     ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+#           CLOUDINARY_API_KEY:        ${{ secrets.CLOUDINARY_API_KEY }}
+#           CLOUDINARY_API_SECRET:     ${{ secrets.CLOUDINARY_API_SECRET }}
+#           GMAIL_SENDER:              ${{ secrets.GMAIL_SENDER }}
+#           GMAIL_APP_PASSWORD:        ${{ secrets.GMAIL_APP_PASSWORD }}
+#         run: |
+#           echo "=== Obscura Technology Bonus — 00:00 UTC / 5 AM PKT ==="
+#           python pipeline/main.py
+#           echo ""
+#           echo "=== Output files ==="
+#           ls -lh pipeline/output/ 2>/dev/null || echo "(no output files)"
 
-      - name: Save logs to repository
-        if: always()
-        continue-on-error: true
-        run: |
-          git config user.name  "Obscura Bot"
-          git config user.email "bot@obscura.ai"
-          git add pipeline/logs/ 2>/dev/null || true
-          git diff --staged --quiet || \
-            git commit -m "bot: technology bonus video logs [skip ci]"
-          git push 2>/dev/null || true
+#       - name: Save logs to repository
+#         if: always()
+#         continue-on-error: true
+#         run: |
+#           git config user.name  "Obscura Bot"
+#           git config user.email "bot@obscura.ai"
+#           git add pipeline/logs/ 2>/dev/null || true
+#           git diff --staged --quiet || \
+#             git commit -m "bot: technology bonus video logs [skip ci]"
+#           git push 2>/dev/null || true
 
-  friday-islamic-bonus:
-    runs-on: ubuntu-latest
-    timeout-minutes: 240
-    if: github.event.schedule == '0 3 * * 5'
+#   friday-islamic-bonus:
+#     runs-on: ubuntu-latest
+#     timeout-minutes: 240
+#     if: github.event.schedule == '0 3 * * 5'
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v4
+#         with:
+#           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
+#       - name: Setup Python 3.11
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.11'
+#           cache: 'pip'
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg fonts-dejavu fonts-liberation libass-dev
+#       - name: Install system dependencies
+#         run: |
+#           sudo apt-get update -qq
+#           sudo apt-get install -y ffmpeg fonts-dejavu fonts-liberation libass-dev
 
-      - name: Cache XTTS v2 model
-        uses: actions/cache@v4
-        with:
-          path: ~/.local/share/tts
-          key: xtts-v2-model-v1
+#       - name: Cache XTTS v2 model
+#         uses: actions/cache@v4
+#         with:
+#           path: ~/.local/share/tts
+#           key: xtts-v2-model-v1
 
-      - name: Install Python dependencies
-        run: pip install -r requirements.txt
+#       - name: Install Python dependencies
+#         run: pip install -r requirements.txt
 
-      - name: Create runtime directories
-        run: |
-          mkdir -p pipeline/temp/voice     \
-                   pipeline/temp/visuals   \
-                   pipeline/temp/subtitles \
-                   pipeline/temp/scenes    \
-                   pipeline/output         \
-                   pipeline/logs
+#       - name: Create runtime directories
+#         run: |
+#           mkdir -p pipeline/temp/voice     \
+#                    pipeline/temp/visuals   \
+#                    pipeline/temp/subtitles \
+#                    pipeline/temp/scenes    \
+#                    pipeline/output         \
+#                    pipeline/logs
 
-      - name: Run Islamic Science Long Video Pipeline
-        env:
-          COQUI_TOS_AGREED:          "1"
-          VIDEO_FORMAT:              long
-          INTENT_OVERRIDE:           ISLAMIC_SCIENCE
-          GROQ_API_KEY_1:            ${{ secrets.GROQ_API_KEY_1 }}
-          GROQ_API_KEY_2:            ${{ secrets.GROQ_API_KEY_2 }}
-          GROQ_API_KEY_3:            ${{ secrets.GROQ_API_KEY_3 }}
-          GROQ_API_KEY_4:            ${{ secrets.GROQ_API_KEY_4 }}
-          GEMINI_API_KEY:            ${{ secrets.GEMINI_API_KEY }}
-          ELEVENLABS_API_KEY:        ${{ secrets.ELEVENLABS_API_KEY }}
-          ELEVENLABS_API_KEY_2:      ${{ secrets.ELEVENLABS_API_KEY_2 }}
-          ELEVENLABS_API_KEY_3:      ${{ secrets.ELEVENLABS_API_KEY_3 }}
-          ELEVENLABS_API_KEY_4:      ${{ secrets.ELEVENLABS_API_KEY_4 }}
-          PEXELS_API_KEY:            ${{ secrets.PEXELS_API_KEY }}
-          PIXABAY_API_KEY:           ${{ secrets.PIXABAY_API_KEY }}
-          YOUTUBE_API_KEY:           ${{ secrets.YOUTUBE_API_KEY }}
-          YOUTUBE_CLIENT_ID:         ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET:     ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_REFRESH_TOKEN:     ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          TELEGRAM_BOT_TOKEN:        ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHANNEL_ID:       ${{ secrets.TELEGRAM_CHANNEL_ID }}
-          TIKTOK_ACCESS_TOKEN:       ${{ secrets.TIKTOK_ACCESS_TOKEN }}
-          MAKECOM_FACEBOOK_WEBHOOK:  ${{ secrets.MAKECOM_FACEBOOK_WEBHOOK }}
-          MAKECOM_INSTAGRAM_WEBHOOK: ${{ secrets.MAKECOM_INSTAGRAM_WEBHOOK }}
-          CLOUDINARY_CLOUD_NAME:     ${{ secrets.CLOUDINARY_CLOUD_NAME }}
-          CLOUDINARY_API_KEY:        ${{ secrets.CLOUDINARY_API_KEY }}
-          CLOUDINARY_API_SECRET:     ${{ secrets.CLOUDINARY_API_SECRET }}
-          GMAIL_SENDER:              ${{ secrets.GMAIL_SENDER }}
-          GMAIL_APP_PASSWORD:        ${{ secrets.GMAIL_APP_PASSWORD }}
-        run: |
-          echo "=== Obscura Islamic Science Long — 03:00 UTC / 8 AM PKT (Friday) ==="
-          python pipeline/main.py
-          echo ""
-          echo "=== Output files ==="
-          ls -lh pipeline/output/ 2>/dev/null || echo "(no output files)"
+#       - name: Run Islamic Science Long Video Pipeline
+#         env:
+#           COQUI_TOS_AGREED:          "1"
+#           VIDEO_FORMAT:              long
+#           INTENT_OVERRIDE:           ISLAMIC_SCIENCE
+#           GROQ_API_KEY_1:            ${{ secrets.GROQ_API_KEY_1 }}
+#           GROQ_API_KEY_2:            ${{ secrets.GROQ_API_KEY_2 }}
+#           GROQ_API_KEY_3:            ${{ secrets.GROQ_API_KEY_3 }}
+#           GROQ_API_KEY_4:            ${{ secrets.GROQ_API_KEY_4 }}
+#           GEMINI_API_KEY:            ${{ secrets.GEMINI_API_KEY }}
+#           ELEVENLABS_API_KEY:        ${{ secrets.ELEVENLABS_API_KEY }}
+#           ELEVENLABS_API_KEY_2:      ${{ secrets.ELEVENLABS_API_KEY_2 }}
+#           ELEVENLABS_API_KEY_3:      ${{ secrets.ELEVENLABS_API_KEY_3 }}
+#           ELEVENLABS_API_KEY_4:      ${{ secrets.ELEVENLABS_API_KEY_4 }}
+#           PEXELS_API_KEY:            ${{ secrets.PEXELS_API_KEY }}
+#           PIXABAY_API_KEY:           ${{ secrets.PIXABAY_API_KEY }}
+#           YOUTUBE_API_KEY:           ${{ secrets.YOUTUBE_API_KEY }}
+#           YOUTUBE_CLIENT_ID:         ${{ secrets.YOUTUBE_CLIENT_ID }}
+#           YOUTUBE_CLIENT_SECRET:     ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+#           YOUTUBE_REFRESH_TOKEN:     ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+#           TELEGRAM_BOT_TOKEN:        ${{ secrets.TELEGRAM_BOT_TOKEN }}
+#           TELEGRAM_CHANNEL_ID:       ${{ secrets.TELEGRAM_CHANNEL_ID }}
+#           TIKTOK_ACCESS_TOKEN:       ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+#           MAKECOM_FACEBOOK_WEBHOOK:  ${{ secrets.MAKECOM_FACEBOOK_WEBHOOK }}
+#           MAKECOM_INSTAGRAM_WEBHOOK: ${{ secrets.MAKECOM_INSTAGRAM_WEBHOOK }}
+#           CLOUDINARY_CLOUD_NAME:     ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+#           CLOUDINARY_API_KEY:        ${{ secrets.CLOUDINARY_API_KEY }}
+#           CLOUDINARY_API_SECRET:     ${{ secrets.CLOUDINARY_API_SECRET }}
+#           GMAIL_SENDER:              ${{ secrets.GMAIL_SENDER }}
+#           GMAIL_APP_PASSWORD:        ${{ secrets.GMAIL_APP_PASSWORD }}
+#         run: |
+#           echo "=== Obscura Islamic Science Long — 03:00 UTC / 8 AM PKT (Friday) ==="
+#           python pipeline/main.py
+#           echo ""
+#           echo "=== Output files ==="
+#           ls -lh pipeline/output/ 2>/dev/null || echo "(no output files)"
 
-      - name: Save logs to repository
-        if: always()
-        continue-on-error: true
-        run: |
-          git config user.name  "Obscura Bot"
-          git config user.email "bot@obscura.ai"
-          git add pipeline/logs/ 2>/dev/null || true
-          git diff --staged --quiet || \
-            git commit -m "bot: islamic science long video logs [skip ci]"
-          git push 2>/dev/null || true
+#       - name: Save logs to repository
+#         if: always()
+#         continue-on-error: true
+#         run: |
+#           git config user.name  "Obscura Bot"
+#           git config user.email "bot@obscura.ai"
+#           git add pipeline/logs/ 2>/dev/null || true
+#           git diff --staged --quiet || \
+#             git commit -m "bot: islamic science long video logs [skip ci]"
+#           git push 2>/dev/null || true
